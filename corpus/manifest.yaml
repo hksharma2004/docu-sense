@@ -1,0 +1,161 @@
+documents:
+- id: smtp
+  title: Simple Mail Transfer Protocol
+  family: rfc
+  versions:
+  - label: rfc2821
+    file: raw/rfc2821.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc2821.txt
+      sha256: 93d6c12135ef648bc6cc1efd371047070505b1d92e7d6923472b12e8c54850fe
+      renderer: docusense-render/0.1
+  - label: rfc5321
+    file: raw/rfc5321.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc5321.txt
+      sha256: 7d560eddff1b213c17d4e1e5f95005728b2f05bc2b3947f0fcc91717c6707634
+      renderer: docusense-render/0.1
+- id: imf
+  title: Internet Message Format
+  family: rfc
+  versions:
+  - label: rfc2822
+    file: raw/rfc2822.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc2822.txt
+      sha256: ef3a43abe126d87e800f1bf8cfff25654df584498105a5384a7ab21febb69637
+      renderer: docusense-render/0.1
+  - label: rfc5322
+    file: raw/rfc5322.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc5322.txt
+      sha256: cb459acca15a2aa895863eaeff6f1d5b9c4ca15578ae3e3706f757787a385969
+      renderer: docusense-render/0.1
+- id: uri
+  title: 'Uniform Resource Identifier (URI): Generic Syntax'
+  family: rfc
+  versions:
+  - label: rfc2396
+    file: raw/rfc2396.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc2396.txt
+      sha256: 67866c0aaa65b29372b4c7ca80ffdfa6caee825088593f4b8b296bff3c05cdc7
+      renderer: docusense-render/0.1
+  - label: rfc3986
+    file: raw/rfc3986.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc3986.txt
+      sha256: 3102dae4b68cebe40337730312fcb612297b8928547267e8b3d1ee6002b2d683
+      renderer: docusense-render/0.1
+- id: tls
+  title: The Transport Layer Security (TLS) Protocol
+  family: rfc
+  versions:
+  - label: rfc5246
+    file: raw/rfc5246.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc5246.txt
+      sha256: 2ebe1b8e651696aeacc8ab3848bedb465505737901ea3b691acf40c392958feb
+      renderer: docusense-render/0.1
+  - label: rfc8446
+    file: raw/rfc8446.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc8446.txt
+      sha256: 47871bc8820a2c3b6ea89f061055577058862cf543686b82d10131239702b3bd
+      renderer: docusense-render/0.1
+- id: bcp14
+  title: Key words for use in RFCs to Indicate Requirement Levels
+  family: rfc
+  versions:
+  - label: rfc2119
+    file: raw/rfc2119.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc2119.txt
+      sha256: 3c2ceb7bfc84cd34720f4a5271338ab9d8280d34bdd1eb250c64306202f2ed8b
+      renderer: docusense-render/0.1
+- id: bcp14-case
+  title: Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words
+  family: rfc
+  versions:
+  - label: rfc8174
+    file: raw/rfc8174.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc8174.txt
+      sha256: 5ca0e2f90be0bc5928ee465f76518fee316dfa775aed885658a29a419cc293b7
+      renderer: docusense-render/0.1
+- id: oauth2
+  title: The OAuth 2.0 Authorization Framework
+  family: rfc
+  versions:
+  - label: rfc6749
+    file: raw/rfc6749.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc6749.txt
+      sha256: f204fc8661d6c92d2ec6e0b54808f961a9ad26e792f57f312d9528335519bd71
+      renderer: docusense-render/0.1
+- id: oauth2-bearer
+  title: 'The OAuth 2.0 Authorization Framework: Bearer Token Usage'
+  family: rfc
+  versions:
+  - label: rfc6750
+    file: raw/rfc6750.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc6750.txt
+      sha256: 9dc385cf4ecdd85024e5a95e447ede9230e11700bf35251906b25b37557d604b
+      renderer: docusense-render/0.1
+- id: pkce
+  title: Proof Key for Code Exchange by OAuth Public Clients
+  family: rfc
+  versions:
+  - label: rfc7636
+    file: raw/rfc7636.pdf
+    origin:
+      kind: rendered-from-txt
+      url: https://www.rfc-editor.org/rfc/rfc7636.txt
+      sha256: 1972e5d81cbaba7066cfd46374207bc2b4546b085ed5dd9b034e79e023e0ca31
+      renderer: docusense-render/0.1
+- id: oauth-security-bcp
+  title: Best Current Practice for OAuth 2.0 Security
+  family: rfc
+  versions:
+  - label: rfc9700
+    file: raw/rfc9700.pdf
+    origin:
+      kind: official-pdf
+      url: https://www.rfc-editor.org/rfc/rfc9700.pdf
+      sha256: 2a9d43a83bc39c2f033046ff685f94651ddac94e57ee261d7303790af6cbf648
+- id: mail-policy
+  title: Example Org Mail Server Policy
+  family: synthetic
+  versions:
+  - label: v1
+    file: synthetic/mail-policy-v1.md
+    origin:
+      kind: synthetic
+      sha256: 8ca3c1aa6e96b7fcee5d4c93095831c09259e13a7c8425972c94052acfd11101
+  - label: v2
+    file: synthetic/mail-policy-v2.md
+    origin:
+      kind: synthetic
+      sha256: f456239a8a63252cea9766fa437cd94e9c4ebaefb30a00b7804f9bc1e0623cd0
+- id: oauth-profile
+  title: Example Org OAuth Deployment Profile
+  family: synthetic
+  versions:
+  - label: v1
+    file: synthetic/oauth-profile-v1.md
+    origin:
+      kind: synthetic
+      sha256: 4ad30ab63019777aadb85ccaf472174d689fd969c7448caa92eab3bbd3b0e14b

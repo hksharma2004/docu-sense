@@ -1,0 +1,47 @@
+# Gold labels for contradiction detection (used by the week-4 benchmark).
+# Each entry: a synthetic statement and the RFC section it deliberately conflicts with.
+# Section numbers were checked against the ingested corpus.
+
+conflicts:
+  - id: C1
+    synthetic: {version: mail-policy@v1, section: "3.1", claim: "message line MAY be up to 2000 octets"}
+    source: {version: smtp@rfc5321, section: "4.5.3.1.6", claim: "max text line length is 1000 octets"}
+    kind: value_mismatch
+    resolved_in: mail-policy@v2   # v2 aligns with RFC 5321
+  - id: C2
+    synthetic: {version: mail-policy@v1, section: "3.2", claim: "MUST NOT accept more than 50 recipients"}
+    source: {version: smtp@rfc5321, section: "4.5.3.1.8", claim: "MUST buffer at least 100 recipients"}
+    kind: value_mismatch
+    resolved_in: mail-policy@v2
+  - id: C3
+    synthetic: {version: mail-policy@v2, section: "4.1", claim: "SHOULD retry after 15 minutes (v1: 10 minutes)"}
+    source: {version: smtp@rfc5321, section: "4.5.4.1", claim: "retry interval SHOULD be at least 30 minutes"}
+    kind: value_mismatch
+  - id: C4
+    synthetic: {version: mail-policy@v2, section: "4.2", claim: "return undeliverable mail after 2 days"}
+    source: {version: smtp@rfc5321, section: "4.5.4.1", claim: "give-up time at least 4-5 days"}
+    kind: value_mismatch
+  - id: C5
+    synthetic: {version: mail-policy@v2, section: "5", claim: "MUST NOT support VRFY"}
+    source: {version: smtp@rfc5321, section: "3.5.2", claim: "SHOULD support both VRFY and EXPN"}
+    kind: modality_mismatch
+  - id: C6
+    synthetic: {version: oauth-profile@v1, section: "2.1", claim: "SPAs MAY use the implicit grant"}
+    source: {version: oauth-security-bcp@rfc9700, section: "2.1.2", claim: "clients SHOULD NOT use the implicit grant"}
+    kind: modality_mismatch
+  - id: C7
+    synthetic: {version: oauth-profile@v1, section: "3.1", claim: "PKCE is OPTIONAL for confidential clients"}
+    source: {version: oauth-security-bcp@rfc9700, section: "2.1.1", claim: "PKCE is RECOMMENDED for confidential clients"}
+    kind: modality_mismatch
+  - id: C8
+    synthetic: {version: oauth-profile@v1, section: "3.2", claim: "code_verifier at least 32 characters"}
+    source: {version: pkce@rfc7636, section: "4.1", claim: "code_verifier minimum length 43 characters"}
+    kind: value_mismatch
+  - id: C9
+    synthetic: {version: oauth-profile@v1, section: "4", claim: "authorization code valid up to 30 minutes"}
+    source: {version: oauth2@rfc6749, section: "4.1.2", claim: "maximum code lifetime of 10 minutes is RECOMMENDED"}
+    kind: value_mismatch
+  - id: C10
+    synthetic: {version: oauth-profile@v1, section: "5", claim: "MAY use prefix matching for redirect URIs"}
+    source: {version: oauth-security-bcp@rfc9700, section: "2.1", claim: "MUST utilize exact string matching"}
+    kind: modality_mismatch

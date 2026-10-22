@@ -1,0 +1,31 @@
+[project]
+name = "docusense"
+version = "0.1.0"
+description = "A verifiable and version-native document layer for AI agents (MCP)"
+authors = [
+    { name = "hksharma2004", email = "hksharma2004@users.noreply.github.com" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pymupdf>=1.24",
+    "markdown-it-py>=3.0",
+    "psycopg[binary,pool]>=3.2",
+    "pydantic-settings>=2.4",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "httpx>=0.27",
+    "rich>=13.7",
+]
+
+[project.scripts]
+docusense = "docusense.cli:app"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
