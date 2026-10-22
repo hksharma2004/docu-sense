@@ -37,8 +37,13 @@ def db_reset(yes: bool = typer.Option(False, "--yes", help="Skip confirmation.")
 
 
 @app.command()
-def ingest(manifest: Path = typer.Argument(Path("corpus/manifest.yaml"))) -> None:
-    """Ingest every document version listed in a manifest (already-ingested versions are skipped)."""
+def ingest(
+    manifest: Path = typer.Argument(Path("corpus/manifest.yaml")),
+    extract: bool = typer.Option(True, help="Run reference/definition/claim extraction afterwards."),
+    index: bool = typer.Option(True, help="Build BM25 + embedding indexes afterwards."),
+    llm_fallback: bool = typer.Option(False, help="Use the bounded Groq fallback during extraction."),
+) -> None:
+    """Ingest every version in a manifest (already-ingested versions are skipped), then extract + index."""
     spec = yaml.safe_load(manifest.read_text())
     base = manifest.parent
     table = Table("version", "status", "layout", "pages", "sections", "spans")
@@ -54,6 +59,73 @@ def ingest(manifest: Path = typer.Argument(Path("corpus/manifest.yaml"))) -> Non
                 table.add_row(r.version_id, r.status, r.layout, str(r.pages or ""),
                               str(r.sections or ""), str(r.spans or ""))
     console.print(table)
+    if extract:
+        extract_cmd(version=None, llm_fallback=llm_fallback)
+    if index:
+        index_cmd()
+
+
+@app.command("extract")
+def extract_cmd(
+    version: str | None = typer.Option(None, help="Limit to one version id."),
+    llm_fallback: bool = typer.Option(False, help="Use the bounded Groq fallback for unresolved subjects."),
+) -> None:
+    """Deterministic extraction: cross-references, definitions, claims (re-runnable)."""
+    from docusense.extract.run import extract_all
+
+    table = Table("version", "refs resolved", "external", "unresolved", "definitions", "claims", "llm calls")
+    with connect() as conn:
+        for s in extract_all(conn, llm_fallback=llm_fallback, version_id=version):
+            table.add_row(s.version_id, str(s.refs["resolved"]), str(s.refs["external"]),
+                          str(s.refs["unresolved"]), str(s.definitions), str(sum(s.claims.values())),
+                          str(s.llm_calls))
+    console.print(table)
+
+
+@app.command("index")
+def index_cmd() -> None:
+    """Build the BM25 index and embed any spans that have no embedding yet."""
+    from docusense.index import bm25, embed
+
+    with connect() as conn:
+        console.print(f"bm25: indexed {bm25.build(conn)} spans")
+        n = embed.build(conn, progress=lambda done, total: console.print(f"  embedded {done}/{total}"))
+        console.print(f"embeddings: {n} new")
+
+
+@app.command("search")
+def search_cmd(
+    query: str,
+    mode: str = typer.Option("hybrid", help="lexical | semantic | hybrid"),
+    doc: str | None = typer.Option(None),
+    k: int = typer.Option(5),
+) -> None:
+    """Search spans from the command line."""
+    from docusense.services import DocuSense
+
+    with connect() as conn:
+        for r in DocuSense(conn).search(query, mode, doc, k)["results"]:
+            console.print(f"[bold]{r['citation']}[/] [dim]score={r['score']}[/]")
+            console.print("  " + " ".join(r["text"].split())[:220])
+
+
+@app.command("define")
+def define_cmd(term: str, doc: str | None = typer.Option(None)) -> None:
+    """Look up where a term is defined."""
+    from docusense.services import DocuSense
+
+    with connect() as conn:
+        for r in DocuSense(conn).lookup_definition(term, doc)["results"]:
+            console.print(f"[bold]{r['term']}[/] {r['citation']} [dim]{r['method']}[/]")
+            console.print("  " + " ".join(r["text"].split())[:220])
+
+
+@app.command("serve-mcp")
+def serve_mcp() -> None:
+    """Run the MCP server on stdio (for Claude Desktop, Cursor, MCP Inspector, the benchmark)."""
+    from docusense.mcp_server import main
+
+    main()
 
 
 @app.command()
@@ -104,15 +176,18 @@ def stats() -> None:
     """Corpus overview."""
     with connect() as conn:
         rows = conn.execute(
-            """SELECT v.id, v.format, v.seq, v.text_bytes, jsonb_array_length(v.page_map) AS pages,
+            """SELECT v.id, v.format, v.seq, jsonb_array_length(v.page_map) AS pages,
                       (SELECT count(*) FROM sections s WHERE s.version_id = v.id) AS sections,
-                      (SELECT count(*) FROM spans p WHERE p.version_id = v.id) AS spans
+                      (SELECT count(*) FROM spans p WHERE p.version_id = v.id AND p.kind <> 'sentence') AS spans,
+                      (SELECT count(*) FROM refs r WHERE r.version_id = v.id) AS refs,
+                      (SELECT count(*) FROM definitions d WHERE d.version_id = v.id) AS defs,
+                      (SELECT count(*) FROM claims c WHERE c.version_id = v.id) AS claims
                FROM versions v ORDER BY v.document_id, v.seq"""
         ).fetchall()
-    table = Table("version", "format", "seq", "pages", "bytes", "sections", "spans")
+    table = Table("version", "format", "seq", "pages", "sections", "spans", "refs", "defs", "claims")
     for r in rows:
-        table.add_row(r["id"], r["format"], str(r["seq"]), str(r["pages"]), str(r["text_bytes"]),
-                      str(r["sections"]), str(r["spans"]))
+        table.add_row(r["id"], r["format"], str(r["seq"]), str(r["pages"]), str(r["sections"]),
+                      str(r["spans"]), str(r["refs"]), str(r["defs"]), str(r["claims"]))
     console.print(table)
 
 

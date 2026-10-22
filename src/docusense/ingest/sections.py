@@ -78,8 +78,9 @@ def build_sections(doc: ParsedDoc) -> list[dict]:
         s["ordinal"] = ordinal
         while stack and stack[-1]["level"] >= s["level"]:
             stack.pop()
-        s["parent_ordinal"] = stack[-1]["ordinal"] if stack and s["level"] > 0 else None
-        stack.append(s)
+        s["parent_ordinal"] = stack[-1]["ordinal"] if stack else None
+        if s["level"] > 0:  # front matter (level 0) is never a parent
+            stack.append(s)
     return sections
 
 

@@ -113,6 +113,24 @@ CREATE TABLE IF NOT EXISTS conflicts (
   detected_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Week 2 additions (idempotent so `db init` upgrades an existing database).
+ALTER TABLE claims ADD COLUMN IF NOT EXISTS predicate TEXT;
+ALTER TABLE claims ADD COLUMN IF NOT EXISTS topic_terms TEXT[];
+ALTER TABLE refs ADD COLUMN IF NOT EXISTS target_version TEXT;
+ALTER TABLE refs ADD COLUMN IF NOT EXISTS version_id TEXT REFERENCES versions(id);
+ALTER TABLE refs ADD COLUMN IF NOT EXISTS relation TEXT;  -- section | cites | obsoletes | updates
+ALTER TABLE definitions ADD COLUMN IF NOT EXISTS section_id BIGINT REFERENCES sections(id);
+
+-- Sentence spans are derived deterministically, so re-extraction must not duplicate them.
+CREATE UNIQUE INDEX IF NOT EXISTS spans_unique_range ON spans(version_id, kind, start_byte, end_byte);
+CREATE INDEX IF NOT EXISTS refs_version_idx ON refs(version_id);
+CREATE INDEX IF NOT EXISTS refs_span_idx ON refs(span_id);
+CREATE INDEX IF NOT EXISTS refs_target_idx ON refs(target_doc);
+CREATE INDEX IF NOT EXISTS definitions_term_idx ON definitions(term_norm);
+CREATE INDEX IF NOT EXISTS claims_subject_idx ON claims(subject_key);
+CREATE INDEX IF NOT EXISTS claims_version_idx ON claims(version_id);
+CREATE INDEX IF NOT EXISTS claims_topic_idx ON claims USING gin(topic_terms);
+
 -- Append-only enforcement: evidence is never rewritten or removed.
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
