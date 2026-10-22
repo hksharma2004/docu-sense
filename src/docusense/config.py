@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     embed_model: str = "BAAI/bge-small-en-v1.5"
     groq_api_key: str = ""
-    extract_model: str = "llama-3.3-70b-versatile"
+    extract_model: str = "openai/gpt-oss-120b"
     openrouter_api_key: str = ""
     agent_provider: str = "openrouter"
     agent_model: str = ""

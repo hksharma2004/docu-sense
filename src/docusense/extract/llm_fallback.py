@@ -5,6 +5,7 @@ a confidence, so LLM-derived claims stay auditable and distinguishable from dete
 """
 
 import json
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -57,16 +58,20 @@ class SubjectFallback:
         prompt = _PROMPT.format(context=context[:2000], sentence=sentence)
         self.calls += 1
         try:
-            resp = self._client.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json={
-                    "model": self.model,
-                    "temperature": 0,
-                    "response_format": {"type": "json_object"},
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-            )
+            for attempt in range(4):
+                resp = self._client.post(
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    json={
+                        "model": self.model,
+                        "temperature": 0,
+                        "response_format": {"type": "json_object"},
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                )
+                if resp.status_code != 429:
+                    break
+                time.sleep(float(resp.headers.get("retry-after", 2 ** attempt)))  # free-tier rate limit
             resp.raise_for_status()
             data = json.loads(resp.json()["choices"][0]["message"]["content"])
         except (httpx.HTTPError, KeyError, ValueError):
