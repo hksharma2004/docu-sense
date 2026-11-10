@@ -52,10 +52,12 @@ class ClaimCandidate:
 
 
 def _stem(word: str) -> str:
+    """Light plural folding: policies→policy, minutes→minute, days→day, uris→uri (not 'ss'/'us'/'is')."""
     word = word.lower()
-    for suffix in ("ies", "es", "s"):
-        if len(word) > 4 and word.endswith(suffix) and not word.endswith("ss"):
-            return word[: -len(suffix)] + ("y" if suffix == "ies" else "")
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith(("ss", "us", "is")):
+        return word[:-1]
     return word
 
 

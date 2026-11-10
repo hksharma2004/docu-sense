@@ -117,6 +117,59 @@ def verify_span(span_id: int, deep: bool = False) -> dict[str, Any]:
     return _ds().verify_span(span_id, deep)
 
 
+@server.tool()
+def list_versions(doc: str) -> dict[str, Any]:
+    """All versions of a document (oldest→newest, append-only) with hashes, parser version, origin and
+    declared relations such as 'obsoletes RFC 2821'."""
+    return _ds().list_versions(doc)
+
+
+@server.tool()
+def diff_versions(doc: str, from_version: str | None = None, to_version: str | None = None,
+                  level: str = "section", max_tokens: int = 4000) -> dict[str, Any]:
+    """Compare two versions of a document. Defaults: latest vs the version before it.
+
+    level: 'section' (added/removed/modified/renumbered sections with changed sentences),
+    'claim' (requirements whose modality or value changed, added or removed), or
+    'reference' (citations added/removed).
+    """
+    return _ds().diff_versions(doc, from_version, to_version, level, max_tokens)
+
+
+@server.tool()
+def blame(span_id: int | None = None, text: str | None = None, doc: str | None = None) -> dict[str, Any]:
+    """Which version first introduced a passage, and its status (identical/similar/absent) in every version.
+    Give span_id, or text + doc to locate the passage in the latest version."""
+    return _ds().blame(span_id, text, doc)
+
+
+@server.tool()
+def find_affected_documents(doc: str, max_tokens: int = 3000) -> dict[str, Any]:
+    """Documents that reference this document (cite, update or obsolete it). Use it to see what may need
+    review when the document changes; flags sources that still cite an obsolete version."""
+    return _ds().find_affected_documents(doc, max_tokens)
+
+
+@server.tool()
+def find_contradictions(doc: str | None = None, include_history: bool = False, include_rejected: bool = False,
+                        k: int = 20, max_tokens: int = 4000) -> dict[str, Any]:
+    """Claims from different documents that conflict (different values for the same limit, or opposing
+    MUST/MUST NOT/MAY requirements). Both sides are returned as evidence; nothing is auto-resolved.
+
+    status: confirmed (rule + LLM judge agree), candidate (rule only) or rejected (judge disagreed, hidden by default).
+    include_history: also include pairs involving obsolete versions.
+    """
+    return _ds().find_contradictions(doc, include_history, include_rejected, k, max_tokens)
+
+
+@server.tool()
+def assemble_context(span_ids: list[int], token_budget: int = 4000) -> dict[str, Any]:
+    """Build the final evidence pack for an answer. For each span: verify its SHA-256 (rejecting tampered
+    spans), attach the latest version's text if the span is obsolete, append conflicting claims, then pack
+    everything into token_budget (requested > newer version > conflicts). Cite the returned citations."""
+    return _ds().assemble_context(span_ids, token_budget)
+
+
 def main() -> None:
     server.run()
 

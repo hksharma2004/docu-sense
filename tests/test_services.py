@@ -145,4 +145,6 @@ def test_mcp_tools_registered():
 
     names = {t.name for t in asyncio.run(server.list_tools())}
     assert names == {"list_documents", "get_section_map", "read_section", "search", "search_claims",
-                     "resolve_reference", "lookup_definition", "get_evidence", "verify_span"}
+                     "resolve_reference", "lookup_definition", "get_evidence", "verify_span",
+                     "list_versions", "diff_versions", "blame", "find_affected_documents",
+                     "find_contradictions", "assemble_context"}

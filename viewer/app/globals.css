@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/* Geist palette (neutral). One font family: Geist Sans, used everywhere incl. code-like text. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-muted: #f2f2f2;
+  --fg: #171717;
+  --fg-muted: #4d4d4d;
+  --fg-subtle: #666666;
+  --border: rgb(0 0 0 / 0.08);
+  --border-strong: rgb(0 0 0 / 0.16);
+  --focus: #006bff;
+  --highlight: #fff6d6;
+  --highlight-border: #f5b400;
+
+  --green-bg: #e9f9ee; --green-fg: #107d32; --green-border: rgb(16 125 50 / 0.24);
+  --red-bg: #ffeeef;   --red-fg: #c8102e;   --red-border: rgb(200 16 46 / 0.24);
+  --amber-bg: #fff4e0; --amber-fg: #a35200; --amber-border: rgb(163 82 0 / 0.24);
+  --blue-bg: #eaf2ff;  --blue-fg: #0062e0;  --blue-border: rgb(0 98 224 / 0.24);
+  --gray-bg: #f2f2f2;  --gray-fg: #4d4d4d;  --gray-border: rgb(0 0 0 / 0.1);
+
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.04), 0 2px 6px rgb(0 0 0 / 0.03);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --bg-subtle: #111111;
+    --bg-muted: #1a1a1a;
+    --fg: #ededed;
+    --fg-muted: #b4b4b4;
+    --fg-subtle: #8f8f8f;
+    --border: rgb(255 255 255 / 0.1);
+    --border-strong: rgb(255 255 255 / 0.2);
+    --focus: #52a8ff;
+    --highlight: #2e2400;
+    --highlight-border: #c99400;
+
+    --green-bg: #0b2416; --green-fg: #62c073; --green-border: rgb(98 192 115 / 0.28);
+    --red-bg: #2a0e12;   --red-fg: #ff6166;   --red-border: rgb(255 97 102 / 0.28);
+    --amber-bg: #2a1a05; --amber-fg: #ffb224; --amber-border: rgb(255 178 36 / 0.28);
+    --blue-bg: #0a1d38;  --blue-fg: #52a8ff;  --blue-border: rgb(82 168 255 / 0.28);
+    --gray-bg: #1f1f1f;  --gray-fg: #b4b4b4;  --gray-border: rgb(255 255 255 / 0.12);
+
+    --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-muted: var(--bg-muted);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-sans); /* single family: never fall back to a second font */
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-padding-top: 4.5rem; /* sticky header never covers focused/anchored content */
+}
+
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), sans-serif;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+a,
+button,
+summary,
+input,
+select,
+label {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--blue-bg);
+  color: var(--fg);
+}
+
+/* Evidence text: keeps the original line layout of tables, ABNF and figures. */
+.evidence-pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Large documents: let the browser skip layout of off-screen sections. */
+.doc-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+.span-target {
+  background: var(--highlight);
+  box-shadow: inset 3px 0 0 var(--highlight-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fade-in 200ms ease-out both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Native disclosure marker replaced by our own chevron. */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] .chevron {
+  transform: rotate(90deg);
+}
+.chevron {
+  transition: transform 150ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

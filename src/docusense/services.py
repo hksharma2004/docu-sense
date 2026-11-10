@@ -388,3 +388,173 @@ class DocuSense:
 
     def verify_span(self, span_id: int, deep: bool = False) -> dict:
         return self.verifier.verify_span(span_id, deep=deep)
+
+    # ── 5. versions, contradictions, context (week 3) ────────────────────────
+
+    def list_versions(self, doc: str) -> dict:
+        v = self.version(doc)
+        rows = self.conn.execute(
+            """SELECT v.id, v.label, v.seq, v.format, v.source_sha256, v.text_sha256, v.parser_version,
+                      v.ingested_at, v.origin, jsonb_array_length(v.page_map) AS pages,
+                      (SELECT count(*) FROM sections s WHERE s.version_id = v.id) AS sections
+               FROM versions v WHERE v.document_id = %s ORDER BY v.seq""",
+            (v["document_id"],),
+        ).fetchall()
+        relations = self.conn.execute(
+            """SELECT DISTINCT version_id, relation, target_rfc, target_version FROM refs
+               WHERE relation IN ('obsoletes', 'updates') AND version_id = ANY(%s)""",
+            ([r["id"] for r in rows],),
+        ).fetchall()
+        out = []
+        for r in rows:
+            out.append({
+                "version_id": r["id"], "label": r["label"], "seq": r["seq"], "format": r["format"],
+                "pages": r["pages"], "sections": r["sections"], "is_latest": r["id"] == v["latest_version"],
+                "source_sha256": r["source_sha256"], "text_sha256": r["text_sha256"],
+                "parser_version": r["parser_version"], "ingested_at": r["ingested_at"].isoformat(),
+                "origin": r["origin"],
+                "declares": [f"{x['relation']} RFC {x['target_rfc']}" for x in relations if x["version_id"] == r["id"]],
+            })
+        return {"document": v["document_id"], "append_only": True, "versions": out}
+
+    def _version_pair(self, doc: str, from_version: str | None, to_version: str | None) -> tuple[dict, dict]:
+        versions = self.list_versions(doc)["versions"]
+        if len(versions) < 2 and not (from_version and to_version):
+            raise NotFound(f"{doc} has only one version; nothing to diff")
+        new = self.version(doc, to_version) if to_version else self.version(versions[-1]["version_id"])
+        if from_version:
+            old = self.version(doc, from_version)
+        else:
+            older = [x for x in versions if x["seq"] < new["seq"]]
+            if not older:
+                raise NotFound(f"{new['id']} is the first version; pass from_version explicitly")
+            old = self.version(older[-1]["version_id"])
+        return old, new
+
+    def diff_versions(self, doc: str, from_version: str | None = None, to_version: str | None = None,
+                      level: str = "section", max_tokens: int = 4000) -> dict:
+        from docusense.versions import diff
+
+        old, new = self._version_pair(doc, from_version, to_version)
+        if level == "section":
+            out = diff.diff_sections(self.conn, old["id"], new["id"])
+            items, truncated = self._fit([s for s in out["sections"] if s["status"] != "unchanged"], max_tokens)
+            out["sections"], out["truncated"] = items, truncated
+            out["note"] = "unchanged sections omitted; see summary for counts"
+        elif level == "claim":
+            out = diff.diff_claims(self.conn, old["id"], new["id"])
+            budget = max_tokens // 3
+            for key in ("changed", "added", "removed"):
+                out[key], cut = self._fit(out[key], budget)
+                out["truncated"] = out.get("truncated", False) or cut
+        elif level == "reference":
+            out = diff.diff_references(self.conn, old["id"], new["id"])
+        else:
+            raise ValueError("level must be section, claim or reference")
+        return out
+
+    def blame(self, span_id: int | None = None, text: str | None = None, doc: str | None = None) -> dict:
+        from docusense.versions.blame import blame
+
+        if span_id is None:
+            if not (text and doc):
+                raise ValueError("give span_id, or text + doc")
+            v = self.version(doc)
+            row = self.conn.execute(
+                """SELECT id FROM spans WHERE version_id = %s AND kind <> 'sentence'
+                   AND regexp_replace(text, '\\s+', ' ', 'g') ILIKE %s ORDER BY length(text) LIMIT 1""",
+                (v["id"], f"%{' '.join(text.split())}%"),
+            ).fetchone()
+            if row is None:
+                raise NotFound(f"text not found in {v['id']}; use search to locate it first")
+            span_id = row["id"]
+        return blame(self.conn, span_id)
+
+    def find_affected_documents(self, doc: str, max_tokens: int = 3000) -> dict:
+        v = self.version(doc)
+        rows = self.conn.execute(
+            """SELECT r.version_id AS source_version, src.document_id AS source_doc, r.relation,
+                      r.target_version, count(*) AS mentions,
+                      array_agg(DISTINCT r.raw) AS raws, min(r.span_id) AS example_span
+               FROM refs r JOIN versions src ON src.id = r.version_id
+               WHERE r.target_doc = %s AND src.document_id <> %s
+               GROUP BY 1, 2, 3, 4 ORDER BY 2, 1""",
+            (v["document_id"], v["document_id"]),
+        ).fetchall()
+        latest = self._latest()
+        items = []
+        for r in rows:
+            items.append({
+                "source_version": r["source_version"],
+                "source_is_latest": latest[r["source_doc"]]["id"] == r["source_version"],
+                "relation": r["relation"], "cites_version": r["target_version"],
+                "cites_obsolete_version": r["target_version"] != v["latest_version"],
+                "mentions": r["mentions"], "examples": r["raws"][:4], "example_span_id": r["example_span"],
+            })
+        items.sort(key=lambda x: (not x["source_is_latest"], x["source_version"]))
+        items, truncated = self._fit(items, max_tokens)
+        return {"document": v["document_id"], "latest_version": v["latest_version"],
+                "affected": items, "truncated": truncated,
+                "note": "documents whose text references this document; review them when it changes"}
+
+    def find_contradictions(self, doc: str | None = None, include_history: bool = False,
+                            include_rejected: bool = False, k: int = 20, max_tokens: int = 4000) -> dict:
+        where = ["TRUE"]
+        params: list = []
+        if not include_rejected:
+            where.append("coalesce(f.details->>'status', '') <> 'rejected'")
+        if not include_history:
+            where.append("""ca.version_id IN (SELECT DISTINCT ON (document_id) id FROM versions ORDER BY document_id, seq DESC)
+                            AND cb.version_id IN (SELECT DISTINCT ON (document_id) id FROM versions ORDER BY document_id, seq DESC)""")
+        if doc:
+            v = self.version(doc)
+            where.append("(xa.document_id = %s OR xb.document_id = %s)")
+            params += [v["document_id"], v["document_id"]]
+        rows = self.conn.execute(
+            f"""SELECT f.id, f.reason, f.confidence, f.method, f.details, ca.span_id AS span_a, cb.span_id AS span_b
+                FROM conflicts f
+                JOIN claims ca ON ca.id = f.claim_a JOIN claims cb ON cb.id = f.claim_b
+                JOIN versions xa ON xa.id = ca.version_id JOIN versions xb ON xb.id = cb.version_id
+                WHERE {' AND '.join(where)}
+                ORDER BY (f.details->>'status' = 'confirmed') DESC, f.confidence DESC LIMIT %s""",
+            tuple(params + [k]),
+        ).fetchall()
+        items = []
+        for r in rows:
+            a = self._span_view(self._spans("p.id = %s", (r["span_a"],))[0], 500)
+            b = self._span_view(self._spans("p.id = %s", (r["span_b"],))[0], 500)
+            details = r["details"] or {}
+            items.append({"conflict_id": r["id"], "reason": r["reason"], "status": details.get("status", "candidate"),
+                          "score": r["confidence"], "method": r["method"],
+                          "judge": details.get("judge"), "a": a, "b": b})
+        items, truncated = self._fit(items, max_tokens)
+        return {"contradictions": items, "truncated": truncated,
+                "note": "both sides are kept as evidence; DocuSense never picks a winner"}
+
+    def assemble_context(self, span_ids: list[int], token_budget: int = 4000) -> dict:
+        from docusense.context.assemble import assemble_context
+
+        return assemble_context(self, span_ids, token_budget)
+
+    # ── 6. viewer helpers (REST API only) ────────────────────────────────────
+
+    def version_document(self, version_id: str) -> dict:
+        v = self.version(version_id)
+        sections = self.conn.execute(
+            """SELECT id, parent_id, number, title, level, page_start, page_end FROM sections
+               WHERE version_id = %s ORDER BY ordinal""", (v["id"],)
+        ).fetchall()
+        spans = self.conn.execute(
+            """SELECT id, section_id, kind, page, start_byte, end_byte, sha256, text FROM spans
+               WHERE version_id = %s AND kind <> 'sentence' ORDER BY ordinal""", (v["id"],)
+        ).fetchall()
+        doc = self.conn.execute("SELECT title, source_family FROM documents WHERE id = %s", (v["document_id"],)).fetchone()
+        versions = self.conn.execute(
+            "SELECT id, label, seq FROM versions WHERE document_id = %s ORDER BY seq", (v["document_id"],)
+        ).fetchall()
+        return {"version_id": v["id"], "document": v["document_id"], "title": doc["title"],
+                "family": doc["source_family"], "label": v["label"], "format": v["format"],
+                "is_latest": v["is_latest"], "latest_version": v["latest_version"],
+                "pages": len(v["page_map"]), "text_sha256": v["text_sha256"], "source_sha256": v["source_sha256"],
+                "parser_version": v["parser_version"], "versions": versions,
+                "sections": sections, "spans": spans}

@@ -61,6 +61,7 @@ def ingest(
     console.print(table)
     if extract:
         extract_cmd(version=None, llm_fallback=llm_fallback)
+        conflicts_cmd(llm_judge=llm_fallback, max_judge_calls=300)
     if index:
         index_cmd()
 
@@ -118,6 +119,26 @@ def define_cmd(term: str, doc: str | None = typer.Option(None)) -> None:
         for r in DocuSense(conn).lookup_definition(term, doc)["results"]:
             console.print(f"[bold]{r['term']}[/] {r['citation']} [dim]{r['method']}[/]")
             console.print("  " + " ".join(r["text"].split())[:220])
+
+
+@app.command("conflicts")
+def conflicts_cmd(
+    llm_judge: bool = typer.Option(False, help="Confirm candidates with the bounded Groq judge."),
+    max_judge_calls: int = typer.Option(300),
+) -> None:
+    """Recompute cross-document contradiction candidates."""
+    from docusense.versions.conflicts import detect
+
+    with connect() as conn:
+        console.print(detect(conn, llm_judge=llm_judge, max_judge_calls=max_judge_calls))
+
+
+@app.command("serve-api")
+def serve_api(port: int = typer.Option(8000), reload: bool = typer.Option(False)) -> None:
+    """Run the REST API for the viewer."""
+    import uvicorn
+
+    uvicorn.run("docusense.api:app", host="127.0.0.1", port=port, reload=reload)
 
 
 @app.command("serve-mcp")
