@@ -19,7 +19,7 @@ from docusense.index.bm25 import INDEX_KINDS
 from docusense.store.blobs import sha256_hex
 
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "  # bge retrieval instruction
-BATCH = 64
+BATCH = 16  # small batches + length-sorted input keep padding (to the longest text in a batch) cheap
 
 
 @lru_cache
@@ -84,7 +84,9 @@ def build(conn: Database, progress=None) -> int:
         (model, list(INDEX_KINDS)),
     ).fetchall()
     keys = [sha256_hex(_clean(r["text"]).encode()) for r in rows]
-    missing = sorted({k: r for k, r in zip(keys, rows) if k not in cache.vectors}.items())
+    # Length-sorted so each batch pads to a similar length; long spans don't slow down short ones.
+    missing = sorted({k: r for k, r in zip(keys, rows) if k not in cache.vectors}.items(),
+                     key=lambda kv: (len(kv[1]["text"]), kv[0]))
     for i in range(0, len(missing), 256):
         batch = missing[i:i + 256]
         for (key, _), vec in zip(batch, embed_texts([_clean(r["text"]) for _, r in batch])):
