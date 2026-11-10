@@ -35,7 +35,7 @@ def collect_files(paths: list[Path], recursive: bool = True) -> list[Path]:
         elif p.is_file():
             out.append(p)
         else:
-            raise FileNotFoundError(p)
+            raise FileNotFoundError(f"no such file or folder: {p}")
     return out
 
 

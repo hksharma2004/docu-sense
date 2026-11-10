@@ -222,7 +222,7 @@ class DocuSense:
             stamp = index_stamp()
             if stamp is None:
                 if mode == "lexical":
-                    raise NotFound("no search index yet; add documents first (docusense add / add_document)")
+                    raise NotFound("no search index yet: add documents (docusense add / add_document) or run `docusense index`")
             else:
                 if self._bm25 is None or self._bm25.stamp != stamp:  # reload after documents were added
                     self._bm25 = BM25Index()

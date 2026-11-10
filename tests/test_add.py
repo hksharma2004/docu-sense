@@ -47,7 +47,7 @@ def test_add_label_conflict_and_unsupported(conn, store, tmp_path):
     a.write_bytes(V2)
     with pytest.raises(ValueError, match="already exists"):
         add_file(conn, a, label="2026", store=store)
-    bad = tmp_path / "x.docx"
+    bad = tmp_path / "x.pages"
     bad.write_bytes(b"PK")
     with pytest.raises(ValueError, match="unsupported"):
         add_file(conn, bad, store=store)
@@ -56,6 +56,6 @@ def test_add_label_conflict_and_unsupported(conn, store, tmp_path):
 def test_collect_files(tmp_path):
     (tmp_path / "sub").mkdir()
     (tmp_path / ".hidden").mkdir()
-    for name in ("a.md", "sub/b.pdf", "sub/c.txt", "d.docx", ".hidden/e.md"):
+    for name in ("a.md", "sub/b.pdf", "sub/c.txt", "d.pages", ".hidden/e.md"):
         (tmp_path / name).write_bytes(b"x")
     assert [p.relative_to(tmp_path).as_posix() for p in collect_files([tmp_path])] == ["a.md", "sub/b.pdf", "sub/c.txt"]

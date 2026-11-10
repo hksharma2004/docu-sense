@@ -34,7 +34,7 @@ postgres = [
 ]
 
 [project.scripts]
-docusense = "docusense.cli:app"
+docusense = "docusense.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "psycopg[binary,pool]>=3.2", "pgvector>=0.3"]

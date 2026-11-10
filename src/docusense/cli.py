@@ -42,7 +42,7 @@ def db_reset(yes: bool = typer.Option(False, "--yes", help="Skip confirmation.")
 
 @app.command()
 def add(
-    paths: list[Path] = typer.Argument(..., help="Files (.pdf, .md, .markdown, .txt) or folders to add."),
+    paths: list[Path] = typer.Argument(..., help="Files (.pdf, .docx, .html, .md, .txt) or folders to add."),
     doc: str | None = typer.Option(None, "--doc", help="Document id (default: derived from the file name). Single file only."),
     title: str | None = typer.Option(None, help="Document title for a new document."),
     label: str | None = typer.Option(None, help="Version label (default v1, v2, ...). Single file only."),
@@ -311,3 +311,14 @@ def stats() -> None:
 
 if __name__ == "__main__":
     app()
+
+
+def main() -> None:
+    """Console entry point: expected errors print one line instead of a traceback."""
+    import sys
+
+    try:
+        app()
+    except (ValueError, LookupError, OSError, RuntimeError) as e:
+        Console(stderr=True).print(f"[red]error:[/] {e}")
+        sys.exit(1)

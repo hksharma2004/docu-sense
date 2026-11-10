@@ -14,7 +14,8 @@ from docusense.store.blobs import BlobStore, sha256_hex
 
 
 # File suffix → stored format. Plain text goes through the Markdown parser (paragraphs, no headings).
-FORMAT_BY_SUFFIX = {"pdf": "pdf", "md": "md", "markdown": "md", "txt": "md"}
+FORMAT_BY_SUFFIX = {"pdf": "pdf", "md": "md", "markdown": "md", "txt": "md",
+                    "docx": "docx", "html": "html", "htm": "html"}
 
 
 def format_for(path: Path) -> str:
@@ -29,6 +30,13 @@ def parse_source(fmt: str, data: bytes) -> ParsedDoc:
         return parse_pdf(data)
     if fmt == "md":
         return parse_markdown(data)
+    if fmt in ("docx", "html"):
+        from docusense.ingest.convert import docx_to_markdown, html_to_markdown
+
+        markdown = docx_to_markdown(data) if fmt == "docx" else html_to_markdown(data)
+        doc = parse_markdown(markdown.encode("utf-8"))
+        doc.layout = fmt
+        return doc
     raise ValueError(f"unsupported format: {fmt}")
 
 

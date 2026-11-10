@@ -31,7 +31,7 @@ DocuSense stores everything in `~/.docusense` (embedded SQLite + content-address
 
 ```bash
 uv tool install git+https://github.com/hksharma2004/docusense   # or: pipx install …
-docusense add ./policies/ handbook.pdf      # PDF, Markdown, .txt; folders are scanned recursively
+docusense add ./policies/ handbook.pdf      # PDF, Word (.docx), HTML, Markdown, .txt; folders scanned recursively
 docusense list                              # documents and versions
 docusense search "carry over leave" --mode hybrid
 docusense verify                            # re-hash every stored span
@@ -77,7 +77,7 @@ What the server exposes:
 - **Prompts**: `answer_with_evidence`, `what_changed`, `audit_contradictions`.
 
 `add_document` lets the agent ingest local files itself. It only reads paths under
-`DOCUSENSE_ADD_ROOTS` (comma-separated; default: your home folder) and only `.pdf/.md/.markdown/.txt`
+`DOCUSENSE_ADD_ROOTS` (comma-separated; default: your home folder) and only `.pdf/.docx/.html/.md/.txt`
 files. Large files are processed in the background; the agent polls `ingest_status`.
 
 To inspect the tools interactively: `npx @modelcontextprotocol/inspector docusense serve-mcp`.

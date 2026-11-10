@@ -228,7 +228,7 @@ def find_contradictions(doc: str | None = None, include_history: bool = False, i
                                              idempotent_hint=True, open_world_hint=False))
 def add_document(path: str, doc: str | None = None, title: str | None = None, label: str | None = None,
                  wait_seconds: float = 20) -> dict[str, Any]:
-    """Add a local file or folder (.pdf, .md, .markdown, .txt) to DocuSense.
+    """Add a local file or folder (.pdf, .docx, .html, .md, .txt) to DocuSense.
 
     Re-adding a file whose content changed appends a new version (v1, v2, …); unchanged files are skipped,
     so it is safe to call repeatedly. doc / label set the document id / version label (single file only).
@@ -241,7 +241,7 @@ def add_document(path: str, doc: str | None = None, title: str | None = None, la
     root = check_allowed(Path(path))
     files = collect_files([root])
     if not files:
-        raise ValueError(f"no supported files (.pdf, .md, .markdown, .txt) at {root}")
+        raise ValueError(f"no supported files (.pdf, .docx, .html, .md, .txt) at {root}")
     if len(files) > 1 and (doc or label):
         raise ValueError("doc/label can only be set when adding a single file")
     job = jobs.wait(jobs.submit(files, doc=doc, title=title, label=label), min(max(wait_seconds, 0), 120))
