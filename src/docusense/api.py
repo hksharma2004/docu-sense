@@ -8,10 +8,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from psycopg_pool import ConnectionPool
-from psycopg.rows import dict_row
 
-from docusense.config import get_settings
+from docusense.db.conn import ConnectionPool
 from docusense.services import DocuSense, NotFound
 
 pool: ConnectionPool | None = None
@@ -20,8 +18,7 @@ pool: ConnectionPool | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global pool
-    pool = ConnectionPool(get_settings().database_url, min_size=1, max_size=8,
-                          kwargs={"row_factory": dict_row, "autocommit": True}, open=True)
+    pool = ConnectionPool()
     yield
     pool.close()
 

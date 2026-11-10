@@ -136,6 +136,11 @@ CREATE INDEX IF NOT EXISTS claims_subject_idx ON claims(subject_key);
 CREATE INDEX IF NOT EXISTS claims_version_idx ON claims(version_id);
 CREATE INDEX IF NOT EXISTS claims_topic_idx ON claims USING gin(topic_terms);
 
+-- Portable helper (SQLite registers the same function in Python).
+CREATE OR REPLACE FUNCTION topic_overlap(a TEXT[], b TEXT[]) RETURNS INT LANGUAGE sql IMMUTABLE AS $$
+  SELECT cardinality(ARRAY(SELECT unnest(a) INTERSECT SELECT unnest(b)))
+$$;
+
 -- Append-only enforcement: evidence is never rewritten or removed.
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN

@@ -36,7 +36,7 @@ def _conflicts_for(ds: DocuSense, span: dict) -> list[dict]:
            JOIN claims ca ON ca.id = f.claim_a JOIN claims cb ON cb.id = f.claim_b
            WHERE mine.version_id = %s AND mine.start_byte >= %s AND mine.end_byte <= %s
              AND coalesce(f.details->>'status', '') <> 'rejected'
-           ORDER BY f.confidence DESC LIMIT 5""",
+           ORDER BY f.confidence DESC, f.id LIMIT 5""",
         (span["version_id"], span["start_byte"], span["end_byte"]),
     ).fetchall()
     return rows

@@ -148,3 +148,73 @@ def test_mcp_tools_registered():
                      "resolve_reference", "lookup_definition", "get_evidence", "verify_span",
                      "list_versions", "diff_versions", "blame", "find_affected_documents",
                      "find_contradictions", "assemble_context"}
+
+
+# ── week 3 tools (exercised on every backend) ──────────────────────────────────
+
+def test_list_versions_and_diff(ds):
+    versions = ds.list_versions("beta")["versions"]
+    assert [v["version_id"] for v in versions] == ["beta@v1", "beta@rfc9002"]
+    assert versions[-1]["is_latest"] and isinstance(versions[0]["ingested_at"], str)
+    assert versions[0]["pages"] >= 1
+
+    sections = ds.diff_versions("beta", level="section")
+    assert sections["from"] == "beta@v1" and sections["to"] == "beta@rfc9002"
+    assert any(s["status"] != "unchanged" for s in sections["sections"])
+
+    claims = ds.diff_versions("beta", level="claim")
+    assert claims["added"] or claims["changed"]
+    ds.diff_versions("beta", level="reference")
+
+
+def test_blame_finds_origin(ds):
+    span = ds.read_section("beta", "1")["spans"][0]
+    out = ds.blame(span_id=span["span_id"])
+    assert out
+    by_text = ds.blame(text="Beta carries widgets over secure", doc="beta")
+    assert by_text
+
+
+def test_affected_documents_and_contradictions(ds, conn):
+    affected = ds.find_affected_documents("beta")["affected"]
+    assert any(a["source_version"] == "alpha@rfc9001" and a["examples"] for a in affected)
+
+    from docusense.versions.conflicts import detect
+    detect(conn)
+    out = ds.find_contradictions(include_history=True)
+    assert "contradictions" in out
+    for item in out["contradictions"]:
+        assert item["a"]["citation"].startswith("ds://") and item["status"] == "candidate"
+
+
+def test_assemble_context_and_viewer_document(ds):
+    span = ds.read_section("alpha", "2")["spans"][0]
+    ctx = ds.assemble_context([span["span_id"]], token_budget=2000)
+    assert ctx
+    doc = ds.version_document("alpha@rfc9001")
+    assert doc["pages"] >= 1 and doc["spans"] and doc["sections"]
+
+
+def test_semantic_search(ds, conn, tmp_path, monkeypatch):
+    """Semantic + hybrid search with a deterministic fake embedder (no model download)."""
+    import hashlib
+
+    import numpy as np
+
+    from docusense.index import embed
+
+    def fake(text: str) -> np.ndarray:
+        vec = np.zeros(64, dtype=np.float32)
+        for word in text.lower().split():
+            vec[int(hashlib.md5(word.strip(".,:\"'").encode()).hexdigest(), 16) % 64] += 1
+        return vec
+
+    monkeypatch.setattr(embed, "embed_texts", lambda texts: [fake(t) for t in texts])
+    monkeypatch.setattr(embed, "embed_query", fake)
+    monkeypatch.setattr(embed.EmbeddingCache, "save", lambda self: None)
+    if conn.dialect == "postgres":
+        pytest.skip("pgvector column is fixed at 384 dims; fake embedder is 64")
+    assert embed.build(conn) > 0
+    hits = ds.search("secure channels widgets", mode="semantic", k=3)["results"]
+    assert hits and hits[0]["version"] == "beta@rfc9002"
+    assert ds.search("secure channels widgets", mode="hybrid", k=3)["results"]

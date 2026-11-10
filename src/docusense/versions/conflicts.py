@@ -12,8 +12,8 @@ import json
 import math
 from itertools import combinations
 
-import psycopg
-from psycopg.types.json import Jsonb
+from docusense.db.conn import Database
+from docusense.db.sql import LATEST_VERSIONS_SQL
 
 from docusense.extract.sentences import flatten
 
@@ -43,7 +43,7 @@ def _opposed(a: str | None, b: str | None) -> bool:
     return bool(pair & POSITIVE and pair & NEGATIVE) or pair in ({"MUST", "MAY"}, {"MAY", "MUST NOT"}, {"MAY", "SHOULD NOT"})
 
 
-def _load(conn: psycopg.Connection) -> list[dict]:
+def _load(conn: Database) -> list[dict]:
     rows = conn.execute(
         """SELECT c.id, c.version_id, v.document_id, c.modality, c.value_num, c.unit, c.topic_terms, p.text
            FROM claims c JOIN versions v ON v.id = c.version_id JOIN spans p ON p.id = c.span_id"""
@@ -54,7 +54,7 @@ def _load(conn: psycopg.Connection) -> list[dict]:
     return rows
 
 
-def find_candidates(conn: psycopg.Connection, min_score: float = MIN_SCORE) -> list[dict]:
+def find_candidates(conn: Database, min_score: float = MIN_SCORE) -> list[dict]:
     claims = _load(conn)
     df: dict[str, int] = {}
     for c in claims:
@@ -108,11 +108,10 @@ contradict. Answer with JSON only:
 {{"contradiction": true|false, "confidence": <0.0-1.0>, "explanation": "<one sentence>"}}"""
 
 
-def detect(conn: psycopg.Connection, llm_judge: bool = False, max_judge_calls: int = 300) -> dict:
+def detect(conn: Database, llm_judge: bool = False, max_judge_calls: int = 300) -> dict:
     """Recompute the conflicts table. Returns counts."""
     candidates = find_candidates(conn)
-    latest = {r["id"] for r in conn.execute(
-        "SELECT DISTINCT ON (document_id) id FROM versions ORDER BY document_id, seq DESC")}
+    latest = {r["id"] for r in conn.execute(LATEST_VERSIONS_SQL)}
     # Judge budget order: contradictions between current versions first, then by score.
     candidates.sort(key=lambda c: (not (c["a"]["version_id"] in latest and c["b"]["version_id"] in latest),
                                    -c["score"]))
@@ -138,7 +137,7 @@ def detect(conn: psycopg.Connection, llm_judge: bool = False, max_judge_calls: i
             conn.execute(
                 """INSERT INTO conflicts (claim_a, claim_b, reason, method, confidence, details)
                    VALUES (%s, %s, %s, %s, %s, %s)""",
-                (c["claim_a"], c["claim_b"], c["reason"], method, c["score"], Jsonb(details)),
+                (c["claim_a"], c["claim_b"], c["reason"], method, c["score"], conn.json(details)),
             )
     conn.commit()
     return {"candidates": len(candidates), "confirmed": confirmed, "rejected": rejected,

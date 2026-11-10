@@ -5,11 +5,13 @@ description = "A verifiable and version-native document layer for AI agents (MCP
 authors = [
     { name = "hksharma2004", email = "hksharma2004@users.noreply.github.com" }
 ]
-requires-python = ">=3.12,<3.13"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
 dependencies = [
     "pymupdf>=1.24",
     "markdown-it-py>=3.0",
-    "psycopg[binary,pool]>=3.2",
     "pydantic-settings>=2.4",
     "pyyaml>=6.0",
     "typer>=0.12",
@@ -19,17 +21,23 @@ dependencies = [
     "bm25s>=0.2",
     "pystemmer>=2.2",
     "fastembed>=0.4",
-    "pgvector>=0.3",
     "numpy>=1.26",
     "fastapi>=0.115",
     "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+# Postgres + pgvector backend (team / hosted). The default backend is embedded SQLite.
+postgres = [
+    "psycopg[binary,pool]>=3.2",
+    "pgvector>=0.3",
 ]
 
 [project.scripts]
 docusense = "docusense.cli:app"
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "psycopg[binary,pool]>=3.2", "pgvector>=0.3"]
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]

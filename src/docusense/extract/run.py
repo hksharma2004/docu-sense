@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 
-import psycopg
+from docusense.db.conn import Database
 
 from docusense.config import PARSER_VERSION
 from docusense.extract.claims import extract_claim, normalize_terms
@@ -41,7 +41,7 @@ class ExtractStats:
     llm_calls: int = 0
 
 
-def _corpus_maps(conn: psycopg.Connection) -> tuple[dict[str, dict], dict[tuple[str, str], int]]:
+def _corpus_maps(conn: Database) -> tuple[dict[str, dict], dict[tuple[str, str], int]]:
     rfc_versions = {}
     for v in conn.execute("SELECT id, document_id, label FROM versions"):
         m = re.fullmatch(r"rfc0*(\d+)", v["label"])
@@ -77,7 +77,7 @@ def _resolve(ref: RefMatch, version_id: str, rfc_versions: dict, sections: dict)
 
 
 def extract_version(
-    conn: psycopg.Connection,
+    conn: Database,
     version_id: str,
     fallback: SubjectFallback | None = None,
     maps: tuple[dict, dict] | None = None,
@@ -211,7 +211,7 @@ def _extract_claims(conn, sp: dict, version_id: str, stats: ExtractStats, fallba
         stats.claims[claim.claim_type] += 1
 
 
-def extract_all(conn: psycopg.Connection, llm_fallback: bool = False, version_id: str | None = None) -> list[ExtractStats]:
+def extract_all(conn: Database, llm_fallback: bool = False, version_id: str | None = None) -> list[ExtractStats]:
     maps = _corpus_maps(conn)
     fallback = SubjectFallback() if llm_fallback else None
     ids = [version_id] if version_id else [r["id"] for r in conn.execute("SELECT id FROM versions ORDER BY document_id, seq")]

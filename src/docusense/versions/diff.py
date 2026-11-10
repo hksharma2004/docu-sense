@@ -2,7 +2,7 @@
 
 from difflib import SequenceMatcher
 
-import psycopg
+from docusense.db.conn import Database
 
 from docusense.extract.sentences import flatten, split_sentences
 
@@ -19,15 +19,21 @@ def _label(s: dict) -> str:
     return " ".join(x for x in (s["number"], s["title"]) if x)
 
 
-def _sections(conn: psycopg.Connection, version_id: str) -> list[dict]:
+def _sections(conn: Database, version_id: str) -> list[dict]:
     rows = conn.execute(
-        """SELECT s.id, s.number, s.title, s.level, s.ordinal,
-                  coalesce(string_agg(p.text, E'\n\n' ORDER BY p.ordinal), '') AS body
-           FROM sections s LEFT JOIN spans p ON p.section_id = s.id AND p.kind <> 'sentence'
-           WHERE s.version_id = %s GROUP BY s.id ORDER BY s.ordinal""",
+        """SELECT id, number, title, level, ordinal FROM sections
+           WHERE version_id = %s ORDER BY ordinal""",
         (version_id,),
     ).fetchall()
+    bodies: dict[int, list[str]] = {}
+    for p in conn.execute(
+        """SELECT section_id, text FROM spans WHERE version_id = %s AND kind <> 'sentence'
+           AND section_id IS NOT NULL ORDER BY ordinal""",
+        (version_id,),
+    ):
+        bodies.setdefault(p["section_id"], []).append(p["text"])
     for r in rows:
+        r["body"] = "\n\n".join(bodies.get(r["id"], []))
         r["flat"] = flatten(r["body"])
     return rows
 
@@ -76,7 +82,7 @@ def _sentence_changes(old_text: str, new_text: str, limit: int) -> dict:
     }
 
 
-def diff_sections(conn: psycopg.Connection, old_vid: str, new_vid: str, sentence_limit: int = 6) -> dict:
+def diff_sections(conn: Database, old_vid: str, new_vid: str, sentence_limit: int = 6) -> dict:
     old, new = _sections(conn, old_vid), _sections(conn, new_vid)
     rows, counts = [], {"added": 0, "removed": 0, "modified": 0, "unchanged": 0}
     for o, n in _align(old, new):
@@ -103,7 +109,7 @@ def diff_sections(conn: psycopg.Connection, old_vid: str, new_vid: str, sentence
     return {"from": old_vid, "to": new_vid, "level": "section", "summary": counts, "sections": rows}
 
 
-def _claims(conn: psycopg.Connection, version_id: str) -> list[dict]:
+def _claims(conn: Database, version_id: str) -> list[dict]:
     rows = conn.execute(
         """SELECT c.id, c.claim_type, c.modality, c.subject, c.value_num, c.unit, c.topic_terms,
                   p.id AS span_id, p.text, p.start_byte, p.end_byte, s.number, s.title
@@ -126,7 +132,7 @@ def _jaccard(a: set, b: set) -> float:
     return len(a & b) / len(a | b) if a and b else 0.0
 
 
-def diff_claims(conn: psycopg.Connection, old_vid: str, new_vid: str, limit: int = 200) -> dict:
+def diff_claims(conn: Database, old_vid: str, new_vid: str, limit: int = 200) -> dict:
     old, new = _claims(conn, old_vid), _claims(conn, new_vid)
     old_text = {c["flat"]: c for c in old}
     unmatched_new, matched_old = [], set()
@@ -168,11 +174,11 @@ def diff_claims(conn: psycopg.Connection, old_vid: str, new_vid: str, limit: int
     }
 
 
-def diff_references(conn: psycopg.Connection, old_vid: str, new_vid: str) -> dict:
+def diff_references(conn: Database, old_vid: str, new_vid: str) -> dict:
     def targets(vid: str) -> dict[tuple, str]:
         rows = conn.execute(
             """SELECT DISTINCT relation, coalesce(target_doc, 'RFC ' || target_rfc) AS target, raw
-               FROM refs WHERE version_id = %s AND target_version IS DISTINCT FROM version_id
+               FROM refs WHERE version_id = %s AND (target_version IS NULL OR target_version <> version_id)
                  AND (target_doc IS NOT NULL OR target_rfc IS NOT NULL)""",
             (vid,),
         ).fetchall()

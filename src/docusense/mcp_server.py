@@ -8,7 +8,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 
-from docusense.db.conn import connect
+from docusense.db.conn import connect, init_schema
 from docusense.services import DocuSense
 
 INSTRUCTIONS = """DocuSense exposes a versioned corpus of IETF RFCs (plus a few synthetic policy documents)
@@ -28,7 +28,8 @@ server = MCPServer("docusense", instructions=INSTRUCTIONS)
 @lru_cache
 def _ds() -> DocuSense:
     conn = connect()
-    conn.autocommit = True
+    init_schema(conn)  # idempotent; makes a fresh install usable immediately
+    conn.autocommit = True  # every call sees documents added since the server started
     return DocuSense(conn)
 
 

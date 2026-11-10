@@ -8,7 +8,8 @@ plus the span's SHA-256, so any consumer can re-verify it.
 import json
 import re
 
-import psycopg
+from docusense.db.conn import Database
+from docusense.db.sql import LATEST_VERSION_IDS_SUBQUERY, LATEST_VERSIONS_SQL
 
 from docusense.extract.claims import normalize_terms
 from docusense.extract.definitions import normalize_term
@@ -24,11 +25,16 @@ RRF_K = 60
 
 _SPAN_COLS = """p.id, p.version_id, p.kind, p.start_byte, p.end_byte, p.page, p.sha256, p.text,
                 s.id AS section_id, s.number, s.title AS section_title, v.document_id, v.seq"""
-_SPAN_FROM = """spans p JOIN versions v ON v.id = p.version_id LEFT JOIN sections s ON s.id = p.section_id"""
+_SPAN_JOINS = """JOIN versions v ON v.id = p.version_id LEFT JOIN sections s ON s.id = p.section_id"""
+_SPAN_FROM = "spans p " + _SPAN_JOINS
 
 
 class NotFound(ValueError):
     pass
+
+
+def _iso(value) -> str | None:
+    return value.isoformat() if hasattr(value, "isoformat") else value
 
 
 def tokens(obj) -> int:
@@ -45,7 +51,7 @@ def _clip(text: str, limit: int) -> str:
 
 
 class DocuSense:
-    def __init__(self, conn: psycopg.Connection):
+    def __init__(self, conn: Database):
         self.conn = conn
         self.verifier = Verifier(conn)
         self._bm25 = None
@@ -53,9 +59,7 @@ class DocuSense:
     # ── helpers ──────────────────────────────────────────────────────────────
 
     def _latest(self) -> dict[str, dict]:
-        rows = self.conn.execute(
-            "SELECT DISTINCT ON (document_id) document_id, id, seq FROM versions ORDER BY document_id, seq DESC"
-        ).fetchall()
+        rows = self.conn.execute(LATEST_VERSIONS_SQL).fetchall()
         return {r["document_id"]: r for r in rows}
 
     def version(self, doc: str, version: str | None = None) -> dict:
@@ -71,11 +75,10 @@ class DocuSense:
             row = self.conn.execute("SELECT * FROM versions WHERE id = %s", (key,)).fetchone()
         else:
             row = self.conn.execute(
-                """SELECT * FROM versions WHERE label = %s OR label = %s
-                   UNION ALL
-                   (SELECT * FROM versions WHERE document_id = %s ORDER BY seq DESC LIMIT 1)
-                   LIMIT 1""",
-                (key, "rfc" + key.removeprefix("rfc").lstrip("0"), key),
+                "SELECT * FROM versions WHERE label = %s OR label = %s LIMIT 1",
+                (key, "rfc" + key.removeprefix("rfc").lstrip("0")),
+            ).fetchone() or self.conn.execute(
+                "SELECT * FROM versions WHERE document_id = %s ORDER BY seq DESC LIMIT 1", (key,)
             ).fetchone()
         if row is None:
             docs = ", ".join(r["id"] for r in self.conn.execute("SELECT id FROM documents ORDER BY id"))
@@ -127,7 +130,7 @@ class DocuSense:
         row = self.conn.execute(
             "SELECT * FROM sections WHERE version_id = %s AND number = %s", (version_id, s)
         ).fetchone() or self.conn.execute(
-            "SELECT * FROM sections WHERE version_id = %s AND title ILIKE %s ORDER BY length(title), ordinal LIMIT 1",
+            "SELECT * FROM sections WHERE version_id = %s AND lower(title) LIKE lower(%s) ORDER BY length(title), ordinal LIMIT 1",
             (version_id, f"%{s}%"),
         ).fetchone()
         if row is None:
@@ -254,9 +257,9 @@ class DocuSense:
         where, params, rank = ["TRUE"], [], "0"
         if topic:
             terms = normalize_terms(topic)
-            where.append("c.topic_terms && %s")
+            where.append("c.topic_terms && %s" if self.conn.dialect == "postgres" else "topic_overlap(c.topic_terms, %s) > 0")
             params.append(terms)
-            rank = "cardinality(ARRAY(SELECT unnest(c.topic_terms) INTERSECT SELECT unnest(%s::text[])))"
+            rank = "topic_overlap(c.topic_terms, %s)"
         if subject:
             where.append("c.subject_key LIKE %s")
             params.append("%" + " ".join(normalize_terms(subject)) + "%")
@@ -276,7 +279,7 @@ class DocuSense:
         rows = self.conn.execute(
             f"""SELECT c.claim_type, c.modality, c.subject, c.value_num, c.unit, c.method, c.confidence,
                        {_SPAN_COLS}, {rank} AS overlap
-                FROM claims c JOIN {_SPAN_FROM} ON p.id = c.span_id
+                FROM claims c JOIN spans p ON p.id = c.span_id {_SPAN_JOINS}
                 WHERE {' AND '.join(where)}
                 ORDER BY overlap DESC, v.seq DESC, c.id LIMIT %s""",
             tuple(order_params + params + [k]),
@@ -328,7 +331,7 @@ class DocuSense:
             v = self.version(doc)
             source = v["id"]
             entries = [r["text"] for r in self._spans(
-                "p.version_id = %s AND p.kind <> 'sentence' AND s.title ~* 'references$'", (v["id"],))]
+                "p.version_id = %s AND p.kind <> 'sentence' AND lower(s.title) LIKE '%%references'", (v["id"],))]
             rfc_versions, sections = _corpus_maps(self.conn)
             rows = [_resolve(ref, v["id"], rfc_versions, sections)
                     for ref in detect_references(reference, build_tag_map(entries))]
@@ -347,7 +350,7 @@ class DocuSense:
             params.append(v["document_id"])
         rows = self.conn.execute(
             f"""SELECT d.term, d.method, {_SPAN_COLS}, d.term_norm = ANY(%s) AS exact, doc.source_family
-                FROM definitions d JOIN {_SPAN_FROM} ON p.id = d.span_id JOIN documents doc ON doc.id = v.document_id
+                FROM definitions d JOIN spans p ON p.id = d.span_id {_SPAN_JOINS} JOIN documents doc ON doc.id = v.document_id
                 WHERE {where}
                 ORDER BY exact DESC, (doc.source_family = 'rfc') DESC, v.seq DESC, length(d.term) LIMIT %s""",
             tuple([variants] + params + [k]),
@@ -411,7 +414,7 @@ class DocuSense:
                 "version_id": r["id"], "label": r["label"], "seq": r["seq"], "format": r["format"],
                 "pages": r["pages"], "sections": r["sections"], "is_latest": r["id"] == v["latest_version"],
                 "source_sha256": r["source_sha256"], "text_sha256": r["text_sha256"],
-                "parser_version": r["parser_version"], "ingested_at": r["ingested_at"].isoformat(),
+                "parser_version": r["parser_version"], "ingested_at": _iso(r["ingested_at"]),
                 "origin": r["origin"],
                 "declares": [f"{x['relation']} RFC {x['target_rfc']}" for x in relations if x["version_id"] == r["id"]],
             })
@@ -462,7 +465,7 @@ class DocuSense:
             v = self.version(doc)
             row = self.conn.execute(
                 """SELECT id FROM spans WHERE version_id = %s AND kind <> 'sentence'
-                   AND regexp_replace(text, '\\s+', ' ', 'g') ILIKE %s ORDER BY length(text) LIMIT 1""",
+                   AND lower(regexp_replace(text, '\\s+', ' ', 'g')) LIKE lower(%s) ORDER BY length(text) LIMIT 1""",
                 (v["id"], f"%{' '.join(text.split())}%"),
             ).fetchone()
             if row is None:
@@ -475,12 +478,21 @@ class DocuSense:
         rows = self.conn.execute(
             """SELECT r.version_id AS source_version, src.document_id AS source_doc, r.relation,
                       r.target_version, count(*) AS mentions,
-                      array_agg(DISTINCT r.raw) AS raws, min(r.span_id) AS example_span
+                      min(r.span_id) AS example_span
                FROM refs r JOIN versions src ON src.id = r.version_id
                WHERE r.target_doc = %s AND src.document_id <> %s
-               GROUP BY 1, 2, 3, 4 ORDER BY 2, 1""",
+               GROUP BY r.version_id, src.document_id, r.relation, r.target_version
+               ORDER BY src.document_id, r.version_id""",
             (v["document_id"], v["document_id"]),
         ).fetchall()
+        raws: dict[tuple, list[str]] = {}
+        for x in self.conn.execute(
+            """SELECT DISTINCT r.version_id, r.relation, r.target_version, r.raw FROM refs r
+               JOIN versions src ON src.id = r.version_id
+               WHERE r.target_doc = %s AND src.document_id <> %s ORDER BY r.raw""",
+            (v["document_id"], v["document_id"]),
+        ):
+            raws.setdefault((x["version_id"], x["relation"], x["target_version"]), []).append(x["raw"])
         latest = self._latest()
         items = []
         for r in rows:
@@ -489,7 +501,8 @@ class DocuSense:
                 "source_is_latest": latest[r["source_doc"]]["id"] == r["source_version"],
                 "relation": r["relation"], "cites_version": r["target_version"],
                 "cites_obsolete_version": r["target_version"] != v["latest_version"],
-                "mentions": r["mentions"], "examples": r["raws"][:4], "example_span_id": r["example_span"],
+                "mentions": r["mentions"],
+                "examples": raws.get((r["source_version"], r["relation"], r["target_version"]), [])[:4], "example_span_id": r["example_span"],
             })
         items.sort(key=lambda x: (not x["source_is_latest"], x["source_version"]))
         items, truncated = self._fit(items, max_tokens)
@@ -504,8 +517,7 @@ class DocuSense:
         if not include_rejected:
             where.append("coalesce(f.details->>'status', '') <> 'rejected'")
         if not include_history:
-            where.append("""ca.version_id IN (SELECT DISTINCT ON (document_id) id FROM versions ORDER BY document_id, seq DESC)
-                            AND cb.version_id IN (SELECT DISTINCT ON (document_id) id FROM versions ORDER BY document_id, seq DESC)""")
+            where.append(f"ca.version_id IN {LATEST_VERSION_IDS_SUBQUERY} AND cb.version_id IN {LATEST_VERSION_IDS_SUBQUERY}")
         if doc:
             v = self.version(doc)
             where.append("(xa.document_id = %s OR xb.document_id = %s)")
@@ -516,7 +528,7 @@ class DocuSense:
                 JOIN claims ca ON ca.id = f.claim_a JOIN claims cb ON cb.id = f.claim_b
                 JOIN versions xa ON xa.id = ca.version_id JOIN versions xb ON xb.id = cb.version_id
                 WHERE {' AND '.join(where)}
-                ORDER BY (f.details->>'status' = 'confirmed') DESC, f.confidence DESC LIMIT %s""",
+                ORDER BY (coalesce(f.details->>'status', '') = 'confirmed') DESC, f.confidence DESC, f.id LIMIT %s""",
             tuple(params + [k]),
         ).fetchall()
         items = []

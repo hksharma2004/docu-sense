@@ -1,4 +1,8 @@
-"""DocuSense command line: `docusense db init|reset`, `ingest`, `verify`, `sections`, `stats`."""
+"""DocuSense command line.
+
+Everyday use:  `docusense add <files or folders>`, `docusense list`, `docusense serve-mcp`, `docusense info`.
+Corpus / dev:  `docusense ingest <manifest>`, `extract`, `index`, `conflicts`, `verify`, `stats`, `db init|reset`.
+"""
 
 import json
 from pathlib import Path
@@ -34,6 +38,78 @@ def db_reset(yes: bool = typer.Option(False, "--yes", help="Skip confirmation.")
     with connect() as conn:
         reset_schema(conn)
     console.print("[yellow]schema reset[/]")
+
+
+@app.command()
+def add(
+    paths: list[Path] = typer.Argument(..., help="Files (.pdf, .md, .markdown, .txt) or folders to add."),
+    doc: str | None = typer.Option(None, "--doc", help="Document id (default: derived from the file name). Single file only."),
+    title: str | None = typer.Option(None, help="Document title for a new document."),
+    label: str | None = typer.Option(None, help="Version label (default v1, v2, ...). Single file only."),
+    index: bool = typer.Option(True, help="Update search indexes afterwards (downloads the embedding model on first use)."),
+) -> None:
+    """Add documents. Re-adding a changed file appends a new version; unchanged files are skipped."""
+    from docusense.ingest.add import add_file, collect_files, refresh_derived
+
+    files = collect_files(paths)
+    if not files:
+        console.print("[yellow]no supported files found[/]")
+        raise typer.Exit(1)
+    if len(files) > 1 and (doc or label):
+        console.print("[red]--doc/--label apply to a single file[/]")
+        raise typer.Exit(2)
+    table = Table("file", "version", "status", "pages", "sections", "spans", "note")
+    added = 0
+    with connect() as conn:
+        init_schema(conn)
+        for f in files:
+            try:
+                r = add_file(conn, f, doc=doc, title=title, label=label)
+            except ValueError as e:
+                table.add_row(f.name, "", "[red]error[/]", "", "", "", str(e))
+                continue
+            added += r.status == "ingested"
+            table.add_row(f.name, r.version_id, r.status, str(r.pages or ""), str(r.sections or ""),
+                          str(r.spans or ""), r.note)
+        console.print(table)
+        if added:
+            with console.status("extracting claims, references and building indexes…"):
+                stats = refresh_derived(conn, index=index)
+            console.print(f"[green]{added} new version(s)[/] · {stats}")
+
+
+@app.command("list")
+def list_cmd() -> None:
+    """List documents and their versions."""
+    from docusense.services import DocuSense
+
+    with connect() as conn:
+        init_schema(conn)
+        docs = DocuSense(conn).list_documents()["documents"]
+    if not docs:
+        console.print("no documents yet — add some with [bold]docusense add <file or folder>[/]")
+        return
+    table = Table("document", "title", "versions (oldest → newest)")
+    for d in docs:
+        table.add_row(d["document"], d["title"], ", ".join(v["label"] + ("*" if v["is_latest"] else "") for v in d["versions"]))
+    console.print(table)
+
+
+@app.command()
+def info() -> None:
+    """Show where DocuSense keeps its data and which backend it uses."""
+    from docusense.config import get_settings
+
+    s = get_settings()
+    url = s.resolved_database_url
+    with connect() as conn:
+        init_schema(conn)
+        n_docs = conn.execute("SELECT count(*) AS n FROM documents").fetchone()["n"]
+        n_versions = conn.execute("SELECT count(*) AS n FROM versions").fetchone()["n"]
+        backend = conn.dialect
+    shown = url if backend == "sqlite" else url.split("@")[-1]  # never print credentials
+    console.print(f"home:       {s.home}\nbackend:    {backend} ({shown})\nstore:      {s.resolved_store_dir}\n"
+                  f"documents:  {n_docs} ({n_versions} versions)\nembeddings: {s.embed_model}")
 
 
 @app.command()

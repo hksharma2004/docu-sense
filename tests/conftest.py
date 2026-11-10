@@ -1,20 +1,21 @@
-import psycopg
 import pytest
 
 from docusense.config import get_settings
-from docusense.db.conn import connect, reset_schema
+from docusense.db.conn import connect, is_sqlite, reset_schema
 from docusense.store.blobs import BlobStore
 
 TEST_DB = "docusense_test"
 
 
-def _admin_url() -> str:
-    return get_settings().database_url
-
-
-@pytest.fixture(scope="session")
-def test_db_url() -> str:
-    base = _admin_url()
+def _postgres_test_url() -> str:
+    """Postgres test database next to the configured one (skips when Postgres isn't configured/reachable)."""
+    base = get_settings().database_url
+    if not base or is_sqlite(base):
+        pytest.skip("Postgres not configured (set DOCUSENSE_DATABASE_URL=postgresql://…)")
+    try:
+        import psycopg
+    except ImportError:
+        pytest.skip("psycopg not installed (postgres extra)")
     try:
         with psycopg.connect(base, autocommit=True) as admin:
             exists = admin.execute("SELECT 1 FROM pg_database WHERE datname = %s", (TEST_DB,)).fetchone()
@@ -25,9 +26,10 @@ def test_db_url() -> str:
     return base.rsplit("/", 1)[0] + "/" + TEST_DB
 
 
-@pytest.fixture
-def conn(test_db_url):
-    with connect(test_db_url) as c:
+@pytest.fixture(params=["sqlite", "postgres"])
+def conn(request, tmp_path):
+    url = f"sqlite:///{tmp_path / 'test.db'}" if request.param == "sqlite" else _postgres_test_url()
+    with connect(url) as c:
         reset_schema(c)
         yield c
 

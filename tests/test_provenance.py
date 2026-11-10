@@ -1,4 +1,3 @@
-import psycopg
 import pytest
 
 from docusense.ingest.pipeline import ingest_version
@@ -62,9 +61,9 @@ def test_tampered_blob_fails_verification(conn, store, ingested):
 
 
 def test_spans_are_append_only(conn, ingested):
-    with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+    with pytest.raises(Exception, match="append-only"):
         conn.execute("UPDATE spans SET text = 'forged' WHERE id = (SELECT min(id) FROM spans)")
     conn.rollback()
-    with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+    with pytest.raises(Exception, match="append-only"):
         conn.execute("DELETE FROM versions")
     conn.rollback()

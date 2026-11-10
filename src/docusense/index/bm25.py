@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import bm25s
-import psycopg
+from docusense.db.conn import Database
 import Stemmer
 
 from docusense.config import get_settings
@@ -14,14 +14,14 @@ _stemmer = Stemmer.Stemmer("english")
 
 
 def index_dir() -> Path:
-    return get_settings().blob_dir.parent / "index" / "bm25"
+    return get_settings().index_dir / "bm25"
 
 
 def _tokenize(texts: list[str]):
     return bm25s.tokenize(texts, stopwords="en", stemmer=_stemmer, show_progress=False)
 
 
-def build(conn: psycopg.Connection) -> int:
+def build(conn: Database) -> int:
     rows = conn.execute(
         "SELECT id, text FROM spans WHERE kind = ANY(%s) ORDER BY id", (list(INDEX_KINDS),)
     ).fetchall()

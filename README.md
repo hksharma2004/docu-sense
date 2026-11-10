@@ -25,48 +25,80 @@ B.Tech IT (VIIth Sem) project, USICT, GGSIPU. See [PLAN.md](PLAN.md) for the ful
 - MCP server with 9 tools: `list_documents`, `get_section_map`, `read_section`, `search`,
   `search_claims`, `resolve_reference`, `lookup_definition`, `get_evidence`, `verify_span`
 
-## Quick start
+## Quick start (no database server needed)
+
+DocuSense stores everything in `~/.docusense` (embedded SQLite + content-addressed blobs).
 
 ```bash
-docker compose up -d                       # Postgres 17 + pgvector on :5433
+uv tool install git+https://github.com/hksharma2004/docusense   # or: pipx install …
+docusense add ./policies/ handbook.pdf      # PDF, Markdown, .txt; folders are scanned recursively
+docusense list                              # documents and versions
+docusense search "carry over leave" --mode hybrid
+docusense verify                            # re-hash every stored span
+```
+
+Re-adding a file whose content changed appends a **new version** (`v1`, `v2`, …) instead of
+overwriting, so `diff_versions`, `blame` and contradiction checks work on ordinary files. The first
+indexing run downloads the local embedding model (`bge-small-en-v1.5`, ~130 MB).
+
+## Using the MCP server
+
+Claude Code:
+
+```bash
+claude mcp add docusense -- docusense serve-mcp
+```
+
+Claude Desktop / Cursor (`mcpServers` in their config):
+
+```json
+{
+  "mcpServers": {
+    "docusense": { "command": "docusense", "args": ["serve-mcp"] }
+  }
+}
+```
+
+To inspect the tools interactively: `npx @modelcontextprotocol/inspector docusense serve-mcp`.
+
+## Configuration
+
+Settings are `DOCUSENSE_*` environment variables (or a `.env` in the working directory or in
+`~/.docusense/.env`); see [.env.example](.env.example). They are namespaced on purpose: a project's own
+`DATABASE_URL` is never picked up.
+
+| Variable | Default | |
+|---|---|---|
+| `DOCUSENSE_HOME` | `~/.docusense` | database, blobs, indexes |
+| `DOCUSENSE_DATABASE_URL` | SQLite in `DOCUSENSE_HOME` | `postgresql://…` for Postgres + pgvector |
+| `DOCUSENSE_STORE_DIR` | `$DOCUSENSE_HOME/store` | blob store + search indexes |
+| `GROQ_API_KEY` | – | optional bounded LLM fallback (`--llm-fallback`) |
+
+## Development (RFC corpus, Postgres)
+
+```bash
 uv sync
+docker compose up -d                       # optional: Postgres 17 + pgvector on :5433
+cp .env.example .env                       # uncomment DOCUSENSE_DATABASE_URL to use Postgres
 uv run python scripts/fetch_corpus.py      # downloads RFCs, writes corpus/manifest.yaml
-uv run docusense ingest                    # ingest + extract + index every version
+uv run docusense ingest                    # ingest + extract + index every version in the manifest
 uv run docusense verify --deep             # re-hash every span + re-parse every source
 uv run python scripts/mcp_smoke.py         # end-to-end check over the MCP stdio protocol
-uv run pytest
+uv run pytest                              # runs on SQLite, and on Postgres too when configured
 ```
 
 Other commands:
 
 ```bash
+uv run docusense info                      # data location, backend, counts
 uv run docusense stats                     # per-version pages / sections / spans / refs / claims
 uv run docusense sections smtp@rfc5321     # section map with pages and byte ranges
-uv run docusense search "max line length" --mode hybrid --doc smtp
 uv run docusense define "resource owner"
 uv run docusense extract [--llm-fallback]  # re-run extraction only
 uv run docusense index                     # rebuild BM25, embed new spans (cached by text hash)
 uv run docusense verify --span 123         # verification record for one span
 uv run docusense db reset --yes            # dev only: wipe all data
 ```
-
-## Using the MCP server
-
-Claude Code picks up `.mcp.json` in this folder automatically (approve the `docusense` server
-when prompted). For Claude Desktop or Cursor, add:
-
-```json
-{
-  "mcpServers": {
-    "docusense": {
-      "command": "uv",
-      "args": ["run", "--directory", "/absolute/path/to/docusense", "--quiet", "docusense", "serve-mcp"]
-    }
-  }
-}
-```
-
-To inspect the tools interactively: `npx @modelcontextprotocol/inspector uv run docusense serve-mcp`.
 
 ## Corpus
 
@@ -84,4 +116,4 @@ with deliberate conflicts; their gold labels are in `corpus/synthetic/planted_co
 - A span is `(version_id, start_byte, end_byte, sha256, parser_version)` over that text.
 - `verify` slices the blob and re-hashes. `verify --deep` re-parses the stored source file and
   checks it still produces the same canonical text.
-- `versions`, `sections` and `spans` reject UPDATE/DELETE via database triggers.
+- `versions`, `sections` and `spans` reject UPDATE/DELETE via database triggers (both backends).
