@@ -218,11 +218,32 @@ def serve_api(port: int = typer.Option(8000), reload: bool = typer.Option(False)
 
 
 @app.command("serve-mcp")
-def serve_mcp() -> None:
-    """Run the MCP server on stdio (for Claude Desktop, Cursor, MCP Inspector, the benchmark)."""
-    from docusense.mcp_server import main
+def serve_mcp(
+    http: bool = typer.Option(False, "--http", help="Serve Streamable HTTP instead of stdio."),
+    host: str = typer.Option("127.0.0.1", help="HTTP bind address."),
+    port: int = typer.Option(8765, help="HTTP port."),
+    path: str = typer.Option("/mcp", help="HTTP endpoint path."),
+) -> None:
+    """Run the MCP server: stdio by default (Claude Desktop/Code, Cursor, VS Code), or --http."""
+    if not http:
+        from docusense.mcp_server import main
 
-    main()
+        main()
+        return
+
+    import uvicorn
+
+    from docusense.config import get_settings
+    from docusense.mcp_server import http_app
+
+    loopback = host in ("127.0.0.1", "localhost", "::1")
+    if not loopback and not get_settings().http_token:
+        console.print("[red]refusing to listen on a non-loopback address without DOCUSENSE_HTTP_TOKEN set[/]")
+        raise typer.Exit(2)
+    err = Console(stderr=True)
+    err.print(f"DocuSense MCP (Streamable HTTP) on http://{host}:{port}{path}"
+              + (" · bearer token required" if get_settings().http_token else ""))
+    uvicorn.run(http_app(host=host, path=path), host=host, port=port, log_level="warning")
 
 
 @app.command()

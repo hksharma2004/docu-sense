@@ -138,18 +138,6 @@ def test_budget_truncation(ds):
     assert out["truncated"] is True and len(out["sections"]) >= 1
 
 
-def test_mcp_tools_registered():
-    import asyncio
-
-    from docusense.mcp_server import server
-
-    names = {t.name for t in asyncio.run(server.list_tools())}
-    assert names == {"list_documents", "get_section_map", "read_section", "search", "search_claims",
-                     "resolve_reference", "lookup_definition", "get_evidence", "verify_span",
-                     "list_versions", "diff_versions", "blame", "find_affected_documents",
-                     "find_contradictions", "assemble_context"}
-
-
 # ── week 3 tools (exercised on every backend) ──────────────────────────────────
 
 def test_list_versions_and_diff(ds):

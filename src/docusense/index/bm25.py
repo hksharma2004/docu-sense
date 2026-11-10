@@ -34,9 +34,16 @@ def build(conn: Database) -> int:
     return len(rows)
 
 
+def index_stamp(path: Path | None = None) -> float | None:
+    """mtime of the index's id list; changes whenever `build` rewrites the index."""
+    ids = (path or index_dir()) / "span_ids.json"
+    return ids.stat().st_mtime_ns if ids.exists() else None
+
+
 class BM25Index:
     def __init__(self, path: Path | None = None):
         path = path or index_dir()
+        self.stamp = index_stamp(path)
         self.retriever = bm25s.BM25.load(str(path))
         self.span_ids: list[int] = json.loads((path / "span_ids.json").read_text())
 

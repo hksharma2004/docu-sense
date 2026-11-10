@@ -49,7 +49,7 @@ Claude Code:
 claude mcp add docusense -- docusense serve-mcp
 ```
 
-Claude Desktop / Cursor (`mcpServers` in their config):
+Claude Desktop / Cursor / VS Code (`mcpServers` in their config):
 
 ```json
 {
@@ -58,6 +58,27 @@ Claude Desktop / Cursor (`mcpServers` in their config):
   }
 }
 ```
+
+Streamable HTTP (remote-capable clients, several agents sharing one store):
+
+```bash
+docusense serve-mcp --http                         # http://127.0.0.1:8765/mcp
+DOCUSENSE_HTTP_TOKEN=… docusense serve-mcp --http --host 0.0.0.0   # non-loopback requires a bearer token
+```
+
+What the server exposes:
+
+- **17 tools**: orient (`list_documents`, `get_section_map`, `read_section`), find (`search`,
+  `search_claims`, `lookup_definition`, `resolve_reference`), verify (`get_evidence`, `verify_span`,
+  `assemble_context`), change over time (`list_versions`, `diff_versions`, `blame`,
+  `find_affected_documents`, `find_contradictions`) and ingestion (`add_document`, `ingest_status`).
+  `DOCUSENSE_TOOLS=core` trims this to 11 for agents with small context budgets.
+- **Resources**: `docusense://documents` and `docusense://versions/{version_id}` (canonical text).
+- **Prompts**: `answer_with_evidence`, `what_changed`, `audit_contradictions`.
+
+`add_document` lets the agent ingest local files itself. It only reads paths under
+`DOCUSENSE_ADD_ROOTS` (comma-separated; default: your home folder) and only `.pdf/.md/.markdown/.txt`
+files. Large files are processed in the background; the agent polls `ingest_status`.
 
 To inspect the tools interactively: `npx @modelcontextprotocol/inspector docusense serve-mcp`.
 
@@ -72,6 +93,9 @@ Settings are `DOCUSENSE_*` environment variables (or a `.env` in the working dir
 | `DOCUSENSE_HOME` | `~/.docusense` | database, blobs, indexes |
 | `DOCUSENSE_DATABASE_URL` | SQLite in `DOCUSENSE_HOME` | `postgresql://…` for Postgres + pgvector |
 | `DOCUSENSE_STORE_DIR` | `$DOCUSENSE_HOME/store` | blob store + search indexes |
+| `DOCUSENSE_ADD_ROOTS` | home folder | folders `add_document` may read |
+| `DOCUSENSE_TOOLS` | `all` | `core` = smaller MCP tool list |
+| `DOCUSENSE_HTTP_TOKEN` | – | bearer token for `serve-mcp --http` |
 | `GROQ_API_KEY` | – | optional bounded LLM fallback (`--llm-fallback`) |
 
 ## Development (RFC corpus, Postgres)

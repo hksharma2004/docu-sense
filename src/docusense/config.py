@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     agent_max_tool_calls: int = 15
     agent_max_tokens: int = 60000
 
+    # MCP server
+    tools: str = "all"            # all | core  (core = smaller tool list for tight agent contexts)
+    add_roots: str = ""           # comma-separated folders add_document may read (default: home dir)
+    http_token: str = ""          # bearer token required by `serve-mcp --http` when set
+
     @property
     def home(self) -> Path:
         return docusense_home()

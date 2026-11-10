@@ -218,10 +218,15 @@ class DocuSense:
         pool = 200 if doc else 50
         rankings: list[list[int]] = []
         if mode in ("lexical", "hybrid"):
-            if self._bm25 is None:
-                from docusense.index.bm25 import BM25Index
-                self._bm25 = BM25Index()
-            rankings.append([sid for sid, _ in self._bm25.search(query, pool)])
+            from docusense.index.bm25 import BM25Index, index_stamp
+            stamp = index_stamp()
+            if stamp is None:
+                if mode == "lexical":
+                    raise NotFound("no search index yet; add documents first (docusense add / add_document)")
+            else:
+                if self._bm25 is None or self._bm25.stamp != stamp:  # reload after documents were added
+                    self._bm25 = BM25Index()
+                rankings.append([sid for sid, _ in self._bm25.search(query, pool)])
         if mode in ("semantic", "hybrid"):
             from docusense.index import embed
             rankings.append([sid for sid, _ in embed.search(self.conn, query, pool)])
