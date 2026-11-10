@@ -6,7 +6,7 @@ auditable.
 
 Providers (DOCUSENSE_LLM_PROVIDER, default "auto" = first one with a key: groq → anthropic → openai):
   groq               OpenAI-compatible API, GROQ_API_KEY, model DOCUSENSE_EXTRACT_MODEL (default openai/gpt-oss-120b)
-  anthropic          Claude via the official SDK (`pip install 'docusense[anthropic]'`), ANTHROPIC_API_KEY
+  anthropic          Claude via the official SDK (`pip install 'docusense-mcp[anthropic]'`), ANTHROPIC_API_KEY
                      (or any credential the SDK resolves), model DOCUSENSE_LLM_MODEL (default claude-opus-5-5)
   openai             OPENAI_API_KEY, model DOCUSENSE_LLM_MODEL (required)
   ollama             local, DOCUSENSE_LLM_BASE_URL (default http://localhost:11434/v1), model required
@@ -60,7 +60,7 @@ class LLM:
             try:
                 import anthropic
             except ImportError:
-                self.error = "the anthropic provider needs: pip install 'docusense[anthropic]'"
+                self.error = "the anthropic provider needs: pip install 'docusense-mcp[anthropic]'"
             else:
                 self._anthropic = anthropic.Anthropic(api_key=s.anthropic_api_key or None)
         elif self.provider in OPENAI_COMPATIBLE or self.provider == "openai-compatible":

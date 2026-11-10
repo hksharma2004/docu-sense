@@ -220,7 +220,7 @@ def connect(url: str | None = None) -> Database:
         import psycopg
         from psycopg.rows import dict_row
     except ImportError as e:  # pragma: no cover
-        raise RuntimeError("Postgres support needs the extra: pip install 'docusense[postgres]'") from e
+        raise RuntimeError("Postgres support needs the extra: pip install 'docusense-mcp[postgres]'") from e
     return Database(psycopg.connect(url, row_factory=dict_row), "postgres")
 
 

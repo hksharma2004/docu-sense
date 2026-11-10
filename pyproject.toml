@@ -1,5 +1,5 @@
 [project]
-name = "docusense"
+name = "docusense-mcp"
 version = "0.1.0"
 description = "A verifiable and version-native document layer for AI agents (MCP)"
 authors = [
@@ -38,9 +38,13 @@ anthropic = ["anthropic>=1.0"]
 
 [project.scripts]
 docusense = "docusense.cli:main"
+docusense-mcp = "docusense.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "psycopg[binary,pool]>=3.2", "pgvector>=0.3", "anthropic>=1.0"]
+
+[tool.uv.build-backend]
+module-name = "docusense"
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]

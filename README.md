@@ -30,7 +30,7 @@ B.Tech IT (VIIth Sem) project, USICT, GGSIPU. See [PLAN.md](PLAN.md) for the ful
 DocuSense stores everything in `~/.docusense` (embedded SQLite + content-addressed blobs).
 
 ```bash
-uv tool install git+https://github.com/hksharma2004/docusense   # or: pipx install …
+uv tool install docusense-mcp     # or: pipx install docusense-mcp
 docusense add ./policies/ handbook.pdf      # PDF, Word (.docx), HTML, Markdown, .txt; folders scanned recursively
 docusense list                              # documents and versions
 docusense search "carry over leave" --mode hybrid
@@ -97,7 +97,7 @@ Settings are `DOCUSENSE_*` environment variables (or a `.env` in the working dir
 | `DOCUSENSE_TOOLS` | `all` | `core` = smaller MCP tool list |
 | `DOCUSENSE_HTTP_TOKEN` | – | bearer token for `serve-mcp --http` |
 | `DOCUSENSE_LLM_PROVIDER` | `auto` | `groq` / `anthropic` / `openai` / `ollama` / `openai-compatible` for the optional LLM fallback |
-| `GROQ_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | – | `auto` picks the first one set (Anthropic needs `docusense[anthropic]`) |
+| `GROQ_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | – | `auto` picks the first one set (Anthropic needs `docusense-mcp[anthropic]`) |
 | `DOCUSENSE_LLM_MODEL` | per provider | e.g. `claude-opus-5-5` (Anthropic default); required for openai/ollama |
 
 ## Development (RFC corpus, Postgres)
