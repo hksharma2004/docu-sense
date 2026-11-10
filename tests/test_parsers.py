@@ -136,3 +136,38 @@ def test_markdown_parse():
     texts = [doc.data[b.start:b.end].decode() for b in doc.blocks]
     assert "Lines MUST NOT exceed 1000 octets." in texts
     assert any(b.kind == "table" for b in doc.blocks)
+
+
+# ── multi-column layouts and alternating footers ────────────────────────────────
+
+def _two_column_pdf(pages: int = 8) -> bytes:
+    import pymupdf
+
+    words = ("alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa "
+             "quebec romeo sierra tango uniform victor whiskey xray yankee zulu").split()
+    doc = pymupdf.open()
+    for p in range(pages):
+        page = doc.new_page(width=612, height=792)
+        page.insert_text((72, 60), f"Overview of {words[p]} rules", fontsize=16)
+        for col, (x0, side) in enumerate(((72, "Left"), (322, "Right"))):
+            body = " ".join(f"{side} column {words[(p * 7 + i * 3 + col) % 26]} sentence {p}.{i} about claims."
+                            for i in range(30))
+            assert page.insert_textbox(pymupdf.Rect(x0, 90, x0 + 218, 740), body, fontsize=9) >= 0
+        footer = (f"Travel Guide (2026) Chapter {p // 3 + 1} Policies {p + 1}" if p % 2
+                  else f"{p + 1} Chapter {p // 3 + 1} Policies Travel Guide (2026)")
+        page.insert_text((72, 770), footer, fontsize=8)
+    return doc.tobytes()
+
+
+def test_two_column_reading_order_and_alternating_footers():
+    from docusense.ingest.pdf_parser import parse_pdf
+
+    doc = parse_pdf(_two_column_pdf())
+    text = doc.text
+    first_page = text.encode()[: doc.page_starts[1]].decode()
+    # Every left-column sentence comes before any right-column sentence on the page.
+    assert first_page.rindex("Left column") < first_page.index("Right column")
+    assert "Travel Guide (2026)" not in text  # alternating, chapter-specific footers stripped
+    for p, word in enumerate(("alpha", "bravo", "charlie")):  # templated body lines are kept
+        assert f"Overview of {word} rules" in text
+    assert "Left column alpha sentence 0.0" in text

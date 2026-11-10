@@ -2,7 +2,13 @@
 
 Two layouts are handled:
   mono   – fixed-width pages (RFC .txt rendered to PDF): headings are numbered lines at column 0.
-  styled – xml2rfc v3 PDFs: headings are bold lines, inline bold/links arrive as separate spans.
+  styled – proportional fonts (xml2rfc v3, papers, reports): headings are bold or larger lines, inline
+           bold/links arrive as separate spans.
+
+Multi-column pages (newsletters, government publications, papers) are read column by column: text
+blocks are grouped into vertical bands, and full-width blocks (titles, wide tables) split the page into
+horizontal segments. Single-column pages take exactly the original whole-page path, so canonical text
+for previously ingested single-column documents is unchanged.
 """
 
 import re
@@ -18,6 +24,7 @@ from docusense.ingest.sections import HeadingMatch, match_heading_text
 BASELINE_TOLERANCE = 2.0  # points; spans closer than this share a visual line
 EDGE_LINES = 2            # lines at top/bottom of a page checked for running headers/footers
 MONO_CHAR_WIDTH = 0.6     # em width of a fixed-width glyph
+MARGIN = 0.07             # top/bottom fraction of the page where fuzzy running lines may sit
 
 
 @dataclass
@@ -31,6 +38,8 @@ class RawLine:
     mono: bool
     indent: int = 0
     chars: int = 0
+    region_start: bool = False  # first line of a new column / segment (reading order jumps)
+    rel_y: float = 0.5          # baseline as a fraction of page height
 
 
 def _is_mono(font: str) -> bool:
@@ -42,16 +51,74 @@ def _is_bold(span: dict) -> bool:
     return bool(span["flags"] & 16) or "bold" in span["font"].lower()
 
 
-def _page_lines(page: pymupdf.Page, pno: int) -> list[RawLine]:
-    spans = []
-    for block in page.get_text("dict")["blocks"]:
-        if block.get("type") != 0:
+def _block_spans(block: dict) -> list[dict]:
+    out = []
+    for line in block["lines"]:
+        if tuple(round(d) for d in line["dir"]) != (1, 0):
             continue
-        for line in block["lines"]:
-            if tuple(round(d) for d in line["dir"]) != (1, 0):
-                continue
-            spans.extend(s for s in line["spans"] if s["text"].strip())
-    spans.sort(key=lambda s: (s["origin"][1], s["origin"][0]))
+        out.extend(s for s in line["spans"] if s["text"].strip())
+    return out
+
+
+def _regions(page: pymupdf.Page) -> list[list[dict]]:
+    """Spans grouped into reading-order regions: one region for single-column pages, else one per
+    column band within each horizontal segment (segments are separated by full-width blocks)."""
+    blocks = [b for b in page.get_text("dict")["blocks"] if b.get("type") == 0]
+    blocks = [(b, sp) for b in blocks if (sp := _block_spans(b))]
+    everything = [s for _, sp in blocks for s in sp]
+    width = page.rect.width
+    if not blocks or width <= 0:
+        return [everything]
+
+    # Column bands: merge the x-intervals of narrow blocks (well under half the page width).
+    narrow = sorted((b["bbox"][0], b["bbox"][2]) for b, _ in blocks if b["bbox"][2] - b["bbox"][0] < 0.48 * width)
+    bands: list[list[float]] = []
+    for x0, x1 in narrow:
+        if bands and x0 <= bands[-1][1] + 2:
+            bands[-1][1] = max(bands[-1][1], x1)
+        else:
+            bands.append([x0, x1])
+    chars = [sum(len(s["text"].strip()) for b, sp in blocks for s in sp
+                 if b["bbox"][2] - b["bbox"][0] < 0.48 * width and band[0] <= b["bbox"][0] <= band[1])
+             for band in bands]
+    real = [band for band, n in zip(bands, chars) if n >= 200]
+    if len(real) < 2:
+        return [everything]  # single column: original behaviour
+
+    def band_of(b: dict) -> int | None:
+        hits = [i for i, band in enumerate(real) if b["bbox"][0] < band[1] and b["bbox"][2] > band[0]]
+        return hits[0] if len(hits) == 1 else None  # spans several bands → full width
+
+    wide = sorted((b for b, _ in blocks if band_of(b) is None), key=lambda b: b["bbox"][1])
+    cuts = [b["bbox"][1] for b in wide] + [float("inf")]
+    regions: list[list[dict]] = []
+    top = float("-inf")
+    for cut, wide_block in zip(cuts, wide + [None]):
+        for i in range(len(real)):
+            col = [s for b, sp in blocks if band_of(b) == i and top <= b["bbox"][1] < cut for s in sp]
+            if col:
+                regions.append(col)
+        if wide_block is not None:
+            regions.append(_block_spans(wide_block))
+            top = wide_block["bbox"][1]
+    return regions
+
+
+def _page_lines(page: pymupdf.Page, pno: int) -> list[RawLine]:
+    lines: list[RawLine] = []
+    height = page.rect.height or 1.0
+    for n, spans in enumerate(_regions(page)):
+        region = _region_lines(spans, pno)
+        if region and n:
+            region[0].region_start = True
+        for l in region:
+            l.rel_y = l.y / height
+        lines.extend(region)
+    return lines
+
+
+def _region_lines(spans: list[dict], pno: int) -> list[RawLine]:
+    spans = sorted(spans, key=lambda s: (s["origin"][1], s["origin"][0]))
 
     clusters: list[list[dict]] = []
     for s in spans:
@@ -86,20 +153,47 @@ def _page_lines(page: pymupdf.Page, pno: int) -> list[RawLine]:
 
 
 def _strip_running_lines(pages: list[list[RawLine]]) -> list[list[RawLine]]:
-    """Drop headers/footers: edge lines whose digit-masked text repeats on most pages."""
+    """Drop headers/footers: short edge lines that recur (digit-masked, fuzzily) on many pages.
+
+    Exact repeats on half the pages catch RFC-style headers. Fuzzy repeats (≥ 75% of the shorter line's tokens shared) on
+    80% of the pages of one parity catch book layouts whose footers alternate sides or embed the
+    chapter name ("4 Chapter 1 Travel Publication 463 (2025)").
+    """
 
     def key(line: RawLine) -> str:
         return re.sub(r"\d+", "#", " ".join(line.text.split()))
 
+    def edge_lines(lines: list[RawLine]) -> list[RawLine]:
+        # Geometric edges (top/bottom baselines): in column layouts a footer may sit inside a column.
+        by_y = sorted(lines, key=lambda l: l.y)
+        return by_y[:EDGE_LINES] + by_y[-EDGE_LINES:]
+
+    edges_by_page = [edge_lines(lines) for lines in pages]
     counts: Counter[str] = Counter()
-    for lines in pages:
-        counts.update({key(l) for l in lines[:EDGE_LINES] + lines[-EDGE_LINES:]})
+    for edges in edges_by_page:
+        counts.update({key(l) for l in edges})
     threshold = max(2, len(pages) // 2)
     running = {k for k, c in counts.items() if c >= threshold}
 
+    if len(pages) >= 6:
+        # Only lines with ≥ 3 tokens: short ones ("#", "1 Introduction") match too easily.
+        # Fuzzy matching is limited to the page margins, so templated body lines are never dropped.
+        margin = {key(l) for edges in edges_by_page for l in edges if l.rel_y < MARGIN or l.rel_y > 1 - MARGIN}
+        tokens = {k: t for k in counts if k in margin and len(k) <= 100 and len(t := frozenset(k.lower().split())) >= 3}
+        for parity in (0, 1):
+            page_keys = [{key(l) for l in edges} & tokens.keys() for edges in edges_by_page[parity::2]]
+            need = max(3, int(0.8 * len(page_keys)))
+            for k in {k for keys in page_keys for k in keys} - running:
+                t = tokens[k]
+                support = sum(
+                    any(len(t & tokens[o]) / min(len(t), len(tokens[o])) >= 0.75 for o in keys) for keys in page_keys
+                )
+                if support >= need:
+                    running.add(k)
+
     out = []
-    for lines in pages:
-        edges = {id(l) for l in lines[:EDGE_LINES] + lines[-EDGE_LINES:]}
+    for lines, page_edges in zip(pages, edges_by_page):
+        edges = {id(l) for l in page_edges}
         out.append([l for l in lines if not (id(l) in edges and key(l) in running)])
     return out
 
@@ -179,7 +273,7 @@ def parse_pdf(data: bytes) -> ParsedDoc:
             if prev is not None:
                 if hm or prev_heading:
                     breaks = True
-                elif first_on_page:
+                elif first_on_page or l.region_start:
                     breaks = bool(re.search(r"[.:]$", prev.text)) and bool(re.match(r"[A-Z0-9\[(]", l.text))
                 else:
                     breaks = l.y - prev.y > 1.45 * pitch
