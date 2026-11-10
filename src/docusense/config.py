@@ -16,7 +16,7 @@ from pathlib import Path
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PARSER_VERSION = "docusense-parser/0.1.0"
+PARSER_VERSION = "docusense-parser/0.2.0"  # 0.2: multi-column PDFs, DOCX/HTML (single-column output unchanged)
 
 
 def docusense_home() -> Path:

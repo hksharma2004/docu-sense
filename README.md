@@ -126,6 +126,20 @@ uv run docusense verify --span 123         # verification record for one span
 uv run docusense db reset --yes            # dev only: wipe all data
 ```
 
+## Retrieval eval (non-RFC documents)
+
+`uv run python scripts/eval_retrieval.py` ingests two real public documents (IRS Publication 463, a
+3-column government PDF; the Transformer paper) and asks 20 paraphrased questions. No LLM is involved.
+
+| mode | hit@1 | hit@5 | MRR |
+|---|---|---|---|
+| lexical | 0.40 | 0.80 | 0.52 |
+| semantic | 0.50 | 0.85 | 0.62 |
+| hybrid | 0.50 | 0.85 | 0.65 |
+
+Use it to check that retrieval changes actually help (index-time de-hyphenation, for example, lowered
+hybrid MRR to 0.57 and was not adopted).
+
 ## Corpus
 
 `corpus/manifest.yaml` maps logical documents to ordered versions (an obsoleting RFC counts as

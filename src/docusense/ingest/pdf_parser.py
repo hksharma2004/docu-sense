@@ -70,18 +70,37 @@ def _regions(page: pymupdf.Page) -> list[list[dict]]:
     if not blocks or width <= 0:
         return [everything]
 
-    # Column bands: merge the x-intervals of narrow blocks (well under half the page width).
-    narrow = sorted((b["bbox"][0], b["bbox"][2]) for b, _ in blocks if b["bbox"][2] - b["bbox"][0] < 0.48 * width)
-    bands: list[list[float]] = []
-    for x0, x1 in narrow:
-        if bands and x0 <= bands[-1][1] + 2:
-            bands[-1][1] = max(bands[-1][1], x1)
+    # Column bands: narrow blocks clustered by left edge (column paragraphs share x0; stray table cells
+    # rarely reach 200 characters). Bands that overlap horizontally are merged (indented lists, quotes).
+    narrow = [(b, sp) for b, sp in blocks if b["bbox"][2] - b["bbox"][0] < 0.48 * width]
+    clusters: list[dict] = []
+    for b, sp in sorted(narrow, key=lambda item: item[0]["bbox"][0]):
+        x0, x1 = b["bbox"][0], b["bbox"][2]
+        n = sum(len(s["text"].strip()) for s in sp)
+        if clusters and x0 - clusters[-1]["x0"] <= 10:
+            clusters[-1]["edges"].append((x1, n))
+            clusters[-1]["chars"] += n
         else:
-            bands.append([x0, x1])
-    chars = [sum(len(s["text"].strip()) for b, sp in blocks for s in sp
-                 if b["bbox"][2] - b["bbox"][0] < 0.48 * width and band[0] <= b["bbox"][0] <= band[1])
-             for band in bands]
-    real = [band for band, n in zip(bands, chars) if n >= 200]
+            clusters.append({"x0": x0, "edges": [(x1, n)], "chars": n})
+
+    def right_edge(edges: list[tuple[float, int]]) -> float:
+        """Character-weighted median right edge: table rows sharing the column's left edge can't stretch it."""
+        total, acc = sum(n for _, n in edges), 0
+        for x1, n in sorted(edges):
+            acc += n
+            if acc * 2 >= total:
+                return x1
+        return edges[-1][0]
+
+    real: list[list[float]] = []
+    for c in clusters:
+        if c["chars"] < 200:
+            continue
+        x1 = right_edge(c["edges"])
+        if real and c["x0"] <= real[-1][1]:
+            real[-1][1] = max(real[-1][1], x1)
+        else:
+            real.append([c["x0"], x1])
     if len(real) < 2:
         return [everything]  # single column: original behaviour
 
