@@ -117,7 +117,7 @@ def ingest(
     manifest: Path = typer.Argument(Path("corpus/manifest.yaml")),
     extract: bool = typer.Option(True, help="Run reference/definition/claim extraction afterwards."),
     index: bool = typer.Option(True, help="Build BM25 + embedding indexes afterwards."),
-    llm_fallback: bool = typer.Option(False, help="Use the bounded Groq fallback during extraction."),
+    llm_fallback: bool = typer.Option(False, help="Use the bounded LLM fallback during extraction (see DOCUSENSE_LLM_PROVIDER)."),
 ) -> None:
     """Ingest every version in a manifest (already-ingested versions are skipped), then extract + index."""
     spec = yaml.safe_load(manifest.read_text())
@@ -145,7 +145,7 @@ def ingest(
 @app.command("extract")
 def extract_cmd(
     version: str | None = typer.Option(None, help="Limit to one version id."),
-    llm_fallback: bool = typer.Option(False, help="Use the bounded Groq fallback for unresolved subjects."),
+    llm_fallback: bool = typer.Option(False, help="Use the bounded LLM fallback for unresolved subjects."),
 ) -> None:
     """Deterministic extraction: cross-references, definitions, claims (re-runnable)."""
     from docusense.extract.run import extract_all
@@ -199,7 +199,7 @@ def define_cmd(term: str, doc: str | None = typer.Option(None)) -> None:
 
 @app.command("conflicts")
 def conflicts_cmd(
-    llm_judge: bool = typer.Option(False, help="Confirm candidates with the bounded Groq judge."),
+    llm_judge: bool = typer.Option(False, help="Confirm candidates with the bounded LLM judge."),
     max_judge_calls: int = typer.Option(300),
 ) -> None:
     """Recompute cross-document contradiction candidates."""

@@ -33,11 +33,14 @@ postgres = [
     "pgvector>=0.3",
 ]
 
+# Anthropic (Claude) as the optional LLM provider for extraction fallback / contradiction judging.
+anthropic = ["anthropic>=1.0"]
+
 [project.scripts]
 docusense = "docusense.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "psycopg[binary,pool]>=3.2", "pgvector>=0.3"]
+dev = ["pytest>=8.0", "psycopg[binary,pool]>=3.2", "pgvector>=0.3", "anthropic>=1.0"]
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]

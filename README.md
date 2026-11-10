@@ -96,7 +96,9 @@ Settings are `DOCUSENSE_*` environment variables (or a `.env` in the working dir
 | `DOCUSENSE_ADD_ROOTS` | home folder | folders `add_document` may read |
 | `DOCUSENSE_TOOLS` | `all` | `core` = smaller MCP tool list |
 | `DOCUSENSE_HTTP_TOKEN` | – | bearer token for `serve-mcp --http` |
-| `GROQ_API_KEY` | – | optional bounded LLM fallback (`--llm-fallback`) |
+| `DOCUSENSE_LLM_PROVIDER` | `auto` | `groq` / `anthropic` / `openai` / `ollama` / `openai-compatible` for the optional LLM fallback |
+| `GROQ_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | – | `auto` picks the first one set (Anthropic needs `docusense[anthropic]`) |
+| `DOCUSENSE_LLM_MODEL` | per provider | e.g. `claude-opus-5-5` (Anthropic default); required for openai/ollama |
 
 ## Development (RFC corpus, Postgres)
 

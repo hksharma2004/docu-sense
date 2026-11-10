@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     embed_model: str = "BAAI/bge-small-en-v1.5"
     groq_api_key: str = Field("", validation_alias=AliasChoices("DOCUSENSE_GROQ_API_KEY", "GROQ_API_KEY"))
     extract_model: str = "openai/gpt-oss-120b"
+    # LLM provider for the bounded fallbacks (see docusense/llm.py)
+    llm_provider: str = "auto"    # auto | groq | anthropic | openai | ollama | openai-compatible | none
+    llm_model: str = ""
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    anthropic_api_key: str = Field("", validation_alias=AliasChoices("DOCUSENSE_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"))
+    openai_api_key: str = Field("", validation_alias=AliasChoices("DOCUSENSE_OPENAI_API_KEY", "OPENAI_API_KEY"))
     openrouter_api_key: str = Field("", validation_alias=AliasChoices("DOCUSENSE_OPENROUTER_API_KEY", "OPENROUTER_API_KEY"))
     agent_provider: str = "openrouter"
     agent_model: str = ""

@@ -144,30 +144,22 @@ def detect(conn: Database, llm_judge: bool = False, max_judge_calls: int = 300) 
             "unjudged": len(candidates) - confirmed - rejected, "judge_calls": judge.calls if judge else 0}
 
 
+JUDGE_SCHEMA = {
+    "type": "object",
+    "properties": {"contradiction": {"type": "boolean"}, "confidence": {"type": "number"},
+                   "explanation": {"type": "string"}},
+    "required": ["contradiction", "confidence", "explanation"],
+    "additionalProperties": False,
+}
+
+
 def _judge(judge, a: str, b: str) -> dict | None:
-    import time
-
-    import httpx
-
-    from docusense.extract.llm_fallback import GROQ_URL
-    from docusense.store.blobs import sha256_hex
-
     prompt = _JUDGE_PROMPT.format(a=a[:1500], b=b[:1500])
     judge.calls += 1
-    try:
-        for attempt in range(5):
-            resp = judge._client.post(
-                GROQ_URL, headers={"Authorization": f"Bearer {judge.api_key}"},
-                json={"model": judge.model, "temperature": 0, "response_format": {"type": "json_object"},
-                      "messages": [{"role": "user", "content": prompt}]},
-            )
-            if resp.status_code != 429:
-                break
-            time.sleep(float(resp.headers.get("retry-after", 2 ** attempt)))
-        resp.raise_for_status()
-        data = json.loads(resp.json()["choices"][0]["message"]["content"])
-    except (httpx.HTTPError, KeyError, ValueError):
+    result = judge.llm.complete_json(prompt, JUDGE_SCHEMA)
+    if result is None:
         return None
+    data = result.data
     return {"contradiction": bool(data.get("contradiction")), "confidence": data.get("confidence"),
-            "explanation": data.get("explanation"), "model_id": judge.model,
-            "prompt_hash": sha256_hex(prompt.encode())}
+            "explanation": data.get("explanation"), "model_id": result.model_id,
+            "prompt_hash": result.prompt_hash}
