@@ -118,3 +118,37 @@ def test_relations():
 ])
 def test_definitions(text, terminology, expected):
     assert [d.term for d in find_definitions(text, terminology)] == expected
+
+
+# ── prose-style documents (policies, contracts, handbooks) ──────────────────────
+
+from docusense.extract.claims import detect_style  # noqa: E402
+
+
+@pytest.mark.parametrize("sentence, ctype, modality, subject, value, unit", [
+    ("Employees must not book hotels above $150 per night.", "exclusion", "MUST NOT", "Employees", 150, "usd"),
+    ("Contractors are prohibited from sharing client data.", "exclusion", "MUST NOT", "Contractors", None, None),
+    ("The employee is entitled to 24 days of paid annual leave.", "requirement", "MAY", "employee", 24, "day"),
+    ("Managers should approve requests within 5 business days.", "requirement", "SHOULD", "Managers", 5, "business day"),
+    ("The supplier shall deliver the goods within 30 days.", "requirement", "MUST", "supplier", 30, "day"),
+    ("Visitors may not enter the lab without an escort.", "exclusion", "MUST NOT", "Visitors", None, None),
+    ("Reimbursement is capped at ₹2,500 per month.", "numeric", None, "Reimbursement is capped at", 2500, "inr"),
+    ("Late payments incur a fee of 1.5% per month.", "numeric", None, "Late payments incur a fee of", 1.5, "percent"),
+])
+def test_prose_claims(sentence, ctype, modality, subject, value, unit):
+    c = extract_claim(sentence, "prose")
+    assert (c.claim_type, c.modality, c.subject, c.value_num, c.unit) == (ctype, modality, subject, value, unit)
+
+
+def test_prose_possibility_may_is_not_a_claim():
+    assert extract_claim("This may cause delays in processing.", "prose") is None
+
+
+def test_regex_backrefs_are_not_currency():
+    assert extract_claim("scheme = $2 authority = $4 path = $5 query = $7", "prose") is None
+
+
+def test_style_detection():
+    assert detect_style(["Clients MUST send x.", "Servers SHOULD reply.", "It is REQUIRED."]) == "bcp14"
+    assert detect_style(["Request for Comments: 3986", "a client must not do this"]) == "bcp14"
+    assert detect_style(["Employees must badge in.", "Visitors may not enter."]) == "prose"

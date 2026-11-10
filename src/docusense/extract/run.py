@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from docusense.db.conn import Database
 
 from docusense.config import PARSER_VERSION
-from docusense.extract.claims import extract_claim, normalize_terms
+from docusense.extract.claims import detect_style, extract_claim, normalize_terms
 from docusense.extract.definitions import TERMINOLOGY_SECTION, find_definitions, normalize_term
 from docusense.extract.llm_fallback import SubjectFallback
 from docusense.extract.references import (
@@ -20,7 +20,7 @@ from docusense.extract.references import (
 from docusense.extract.sentences import flatten, split_sentences
 from docusense.store.blobs import sha256_hex
 
-EXTRACTOR = "regex/0.1"
+EXTRACTOR = "regex/0.2"
 
 SKIP_SECTIONS = re.compile(
     r"^(table of contents|contents|status of this memo|copyright notice|full copyright statement|"
@@ -39,6 +39,7 @@ class ExtractStats:
     claims: Counter = field(default_factory=Counter)
     sentences: int = 0
     llm_calls: int = 0
+    style: str = ""
 
 
 def _corpus_maps(conn: Database) -> tuple[dict[str, dict], dict[tuple[str, str], int]]:
@@ -100,6 +101,7 @@ def extract_version(
             REFERENCE_SECTION.match(sp["parent_title"] or "") and sp["level"] and sp["level"] > 1)
 
     tag_map = build_tag_map([sp["text"] for sp in spans if in_reference_list(sp)])
+    stats.style = detect_style([sp["text"] for sp in spans])
     if fallback:
         fallback.reset_budget()
 
@@ -131,7 +133,7 @@ def extract_version(
                 stats.definitions += 1
 
             if sp["kind"] == "paragraph":
-                _extract_claims(conn, sp, version_id, stats, fallback)
+                _extract_claims(conn, sp, version_id, stats, fallback, stats.style)
 
         # Subsections of a terminology section define their own title (RFC 5321 §2.3.x style).
         for s in conn.execute(
@@ -185,9 +187,10 @@ def _sentence_span_id(conn, version_id: str, section_id: int | None, ordinal: in
     ).fetchone()["id"]
 
 
-def _extract_claims(conn, sp: dict, version_id: str, stats: ExtractStats, fallback: SubjectFallback | None) -> None:
+def _extract_claims(conn, sp: dict, version_id: str, stats: ExtractStats, fallback: SubjectFallback | None,
+                    style: str = "bcp14") -> None:
     for i, sent in enumerate(split_sentences(sp["text"], base=sp["start_byte"])):
-        claim = extract_claim(sent.text)
+        claim = extract_claim(sent.text, style)
         if claim is None:
             continue
         method, model_id, prompt_hash, confidence = EXTRACTOR, None, None, 1.0

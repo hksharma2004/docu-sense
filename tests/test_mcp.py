@@ -81,7 +81,7 @@ def test_add_document_versions_and_search(mcp):
     hits = call(server, "search", query="hotels per night", mode="lexical")["results"]
     assert {h["version"] for h in hits} == {"travel@v1", "travel@v2"}  # index reloaded after each add
     diff = call(server, "diff_versions", doc="travel", level="claim")
-    assert diff["summary"]["changed"] == 1, diff
+    assert diff["summary"]["value_changed"] == 1, diff
 
 
 def test_add_document_respects_allowed_roots(mcp, tmp_path):
