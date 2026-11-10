@@ -11,3 +11,5 @@ node_modules/
 bench/results/cache/
 .DS_Store
 dist/
+bench/work/
+bench/results/
