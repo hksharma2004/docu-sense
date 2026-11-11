@@ -62,7 +62,11 @@ class Chat:
         if tools:
             body["tools"] = tools
         for attempt in range(8):
-            r = self.http.post(self.url, headers={"Authorization": f"Bearer {self.key}"}, json=body)
+            try:
+                r = self.http.post(self.url, headers={"Authorization": f"Bearer {self.key}"}, json=body)
+            except httpx.TransportError:  # network blip / DNS / laptop sleep: back off and retry
+                time.sleep(min(2 ** attempt * 5, 120))
+                continue
             if r.status_code == 429:
                 text = r.text.lower()
                 if "per-day" in text or "per day" in text or "daily" in text or "free-models-per-day" in text:
