@@ -25,7 +25,7 @@ TEXTS = ROOT / "bench" / "work" / "texts"
 
 
 def tok(obj) -> int:
-    text = obj if isinstance(obj, str) else json.dumps(obj, ensure_ascii=False)
+    text = obj if isinstance(obj, str) else json.dumps(obj, ensure_ascii=False, separators=(",", ":"))  # what MCP sends
     return len(text) // 4
 
 

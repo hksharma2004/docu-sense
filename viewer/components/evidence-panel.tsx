@@ -46,7 +46,7 @@ export async function EvidencePanel({ spanId, closeHref }: { spanId: number; clo
           </dd>
           <dt className="text-fg-subtle">SHA-256</dt>
           <dd className="break-all tabular-nums" translate="no">
-            {ev.sha256}
+            {String(ev.provenance.sha256)}
           </dd>
           <dt className="text-fg-subtle">Parser</dt>
           <dd translate="no">{String(ev.provenance.parser_version)}</dd>

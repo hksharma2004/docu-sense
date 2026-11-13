@@ -121,7 +121,7 @@ def test_evidence_is_verified(ds):
     ev = ds.get_evidence(span["span_id"])
     assert ev["verified"] is True
     assert ev["section_path"] == ["2 Transfer", "2.1 Retries"]
-    assert ev["provenance"]["sha256"] == span["sha256"]
+    assert len(ev["provenance"]["sha256"]) == 64 and "sha256" not in span  # hash lives in evidence, not every hit
 
 
 def test_sentence_spans_verify_and_reextract_is_idempotent(conn, ds):

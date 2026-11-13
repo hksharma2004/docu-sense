@@ -96,10 +96,10 @@ class DocuSense:
             "version": r["version_id"],
             "section": " ".join(x for x in (r["number"], r["section_title"]) if x),
             "page": r["page"],
-            "kind": r["kind"],
             "text": _clip(r["text"].strip(), text_limit),
-            "sha256": r["sha256"],
         }
+        if r["kind"] != "paragraph":
+            view["kind"] = r["kind"]
         if latest and latest["id"] != r["version_id"]:
             view["newer_version"] = latest["id"]
         return view
@@ -248,9 +248,7 @@ class DocuSense:
         results = []
         for sid in ordered:
             if sid in rows:
-                view = self._span_view(rows[sid], 700)
-                view["score"] = round(scores[sid], 5)
-                results.append(view)
+                results.append(self._span_view(rows[sid], 700))  # ranked order; scores are noise to an agent
             if len(results) >= k:
                 break
         results, truncated = self._fit(results, max_tokens)

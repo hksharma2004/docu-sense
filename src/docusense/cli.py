@@ -181,8 +181,8 @@ def search_cmd(
     from docusense.services import DocuSense
 
     with connect() as conn:
-        for r in DocuSense(conn).search(query, mode, doc, k)["results"]:
-            console.print(f"[bold]{r['citation']}[/] [dim]score={r['score']}[/]")
+        for rank, r in enumerate(DocuSense(conn).search(query, mode, doc, k)["results"], 1):
+            console.print(f"[dim]{rank}.[/] [bold]{r['citation']}[/] [dim]p.{r['page']}[/]")
             console.print("  " + " ".join(r["text"].split())[:220])
 
 
@@ -307,6 +307,112 @@ def stats() -> None:
         table.add_row(r["id"], r["format"], str(r["seq"]), str(r["pages"]), str(r["sections"]),
                       str(r["spans"]), str(r["refs"]), str(r["defs"]), str(r["claims"]))
     console.print(table)
+
+
+@app.command()
+def savings(
+    days: int = typer.Option(0, help="Only count the last N days (0 = all time)."),
+    as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
+) -> None:
+    """Tokens your agents read through DocuSense vs. pasting the same documents into context."""
+    import time
+
+    from docusense import savings as ledger
+
+    with connect() as conn:
+        init_schema(conn)
+        version_tokens = {r["id"]: r["text_bytes"] // 4
+                          for r in conn.execute("SELECT id, text_bytes FROM versions").fetchall()}
+    s = ledger.summarize(version_tokens, since=time.time() - days * 86400 if days else None)
+    if as_json:
+        console.print_json(json.dumps(s))
+        return
+    if not s["calls"]:
+        console.print(f"No agent activity yet. Connect an agent ([bold]docusense setup[/]) and ask it about your documents.\n"
+                      f"Ledger: {ledger.ledger_path()}")
+        return
+    console.print(f"[bold]{s['sessions']}[/] agent sessions · [bold]{s['calls']}[/] tool calls\n"
+                  f"read via DocuSense:   [bold]{s['returned']:>12,}[/] tokens\n"
+                  f"pasting the docs:     [bold]{s['paste']:>12,}[/] tokens")
+    if s["returned"] < s["paste"]:
+        console.print(f"[green]saved:                {s['saved']:>12,} tokens ({s['ratio']}x less context)[/]")
+    else:
+        console.print("[yellow]no saving: these documents are small enough to paste directly. "
+                      "DocuSense pays off on long or many documents.[/]")
+    top = ", ".join(f"{t} ×{n}" for t, n in list(s["tools"].items())[:6])
+    console.print(f"[dim]most used: {top}\nbaseline = each document version an agent touched, pasted once per session "
+                  f"(chars/4). Ledger: {ledger.ledger_path()} · disable with DOCUSENSE_SAVINGS_LOG=0[/]")
+
+
+def _server_command() -> list[str]:
+    """Absolute command for the MCP server: GUI clients (Claude Desktop, Cursor) don't inherit your shell PATH."""
+    import shutil
+    import sys
+
+    exe = shutil.which("docusense")
+    if exe:
+        return [str(Path(exe).resolve()), "serve-mcp"]
+    uvx = shutil.which("uvx")
+    if uvx:
+        return [uvx, "--from", "docusense-mcp", "docusense", "serve-mcp"]
+    return [sys.executable, "-m", "docusense.cli", "serve-mcp"]
+
+
+def _desktop_config() -> Path:
+    import os
+    import sys
+
+    if sys.platform == "darwin":
+        return Path.home() / "Library/Application Support/Claude/claude_desktop_config.json"
+    if sys.platform == "win32":
+        return Path(os.environ.get("APPDATA", Path.home())) / "Claude/claude_desktop_config.json"
+    return Path.home() / ".config/Claude/claude_desktop_config.json"
+
+
+def _merge_mcp_json(path: Path, cmd: list[str]) -> str:
+    data = {}
+    if path.exists():
+        text = path.read_text(encoding="utf-8").strip()
+        data = json.loads(text) if text else {}
+        path.with_suffix(path.suffix + ".bak").write_text(text, encoding="utf-8")
+    entry = {"command": cmd[0], "args": cmd[1:]}
+    if data.get("mcpServers", {}).get("docusense") == entry:
+        return f"already configured in {path}"
+    data.setdefault("mcpServers", {})["docusense"] = entry
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return f"added to {path} (backup: {path.name}.bak) — restart the app"
+
+
+@app.command()
+def setup(
+    client: str = typer.Argument("claude-code", help="claude-code | claude-desktop | cursor | print"),
+) -> None:
+    """Register the DocuSense MCP server with an agent client."""
+    import shutil
+    import subprocess
+
+    cmd = _server_command()
+    client = client.lower()
+    if client == "claude-code":
+        claude = shutil.which("claude")
+        if not claude:
+            raise RuntimeError("`claude` CLI not found. Install Claude Code, or use: docusense setup print")
+        done = subprocess.run([claude, "mcp", "add", "--scope", "user", "docusense", "--", *cmd],
+                              capture_output=True, text=True)
+        out = (done.stdout + done.stderr).strip()
+        if done.returncode and "already exists" not in out:
+            raise RuntimeError(out or "claude mcp add failed")
+        console.print(out or "added", "\n[green]Claude Code[/]: run /mcp in a session to confirm.")
+    elif client == "claude-desktop":
+        console.print(_merge_mcp_json(_desktop_config(), cmd))
+    elif client == "cursor":
+        console.print(_merge_mcp_json(Path.home() / ".cursor/mcp.json", cmd))
+    elif client == "print":
+        console.print_json(json.dumps({"mcpServers": {"docusense": {"command": cmd[0], "args": cmd[1:]}}}))
+    else:
+        raise ValueError(f"unknown client {client!r}: use claude-code, claude-desktop, cursor or print")
+    console.print("[dim]Next: `docusense add <folder>` your docs, ask your agent about them, then `docusense savings`.[/]")
 
 
 if __name__ == "__main__":

@@ -8,11 +8,9 @@ export type SpanView = {
   version: string;
   section: string;
   page: number;
-  kind: string;
+  kind?: string; // omitted for plain paragraphs
   text: string;
-  sha256: string;
   newer_version?: string;
-  score?: number;
 };
 
 export type Section = {

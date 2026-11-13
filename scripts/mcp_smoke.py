@@ -53,7 +53,7 @@ async def main() -> None:
         print(f"    {syntax['section']}: {' '.join(first['text'].split())[:160]}")
 
         evidence = await call("get_evidence", span_id=first["span_id"])
-        print(f"    verified={evidence['verified']} sha256={evidence['sha256'][:16]}… latest={evidence['is_latest']}")
+        print(f"    verified={evidence['verified']} sha256={evidence['provenance']['sha256'][:16]}… latest={evidence['is_latest']}")
 
         check = await call("verify_span", span_id=source["span_id"], deep=True)
         print(f"    source span deep-verified={check['verified']}")

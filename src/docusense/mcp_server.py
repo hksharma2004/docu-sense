@@ -7,6 +7,7 @@ DOCUSENSE_TOOLS=core exposes a smaller tool set for agents with tight context bu
 """
 
 import functools
+import json
 import threading
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 
 from docusense.config import get_settings
+from docusense import savings
 from docusense.db.conn import connect, init_schema
 from docusense.services import DocuSense
 
@@ -61,17 +63,23 @@ def tool(core: bool = False, annotations: ToolAnnotations | None = READ_ONLY):
 
     Expected failures (unknown document, bad argument, missing file) become clean tool errors the agent
     can act on, instead of tracebacks.
+
+    Results go back as compact JSON text only (no pretty-printing, no duplicate structuredContent copy):
+    every byte here is a token in the agent's context. Each call is logged to the local savings ledger.
     """
     def decorator(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             try:
-                return fn(*args, **kwargs)
+                result = fn(*args, **kwargs)
             except (ValueError, LookupError, OSError) as e:  # NotFound is a ValueError
                 raise ToolError(str(e)) from e
+            text = json.dumps(result, ensure_ascii=False, separators=(",", ":"), default=str)
+            savings.record(fn.__name__, text)
+            return text
 
         if core or get_settings().tools.strip().lower() != "core":
-            server.tool(annotations=annotations)(wrapper)
+            server.tool(annotations=annotations, structured_output=False)(wrapper)
         return fn
 
     return decorator

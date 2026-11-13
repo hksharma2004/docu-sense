@@ -106,3 +106,28 @@ def test_resources_and_prompts(mcp):
 
     prompt = asyncio.run(server.get_prompt("answer_with_evidence", {"question": "hotel cap?"}))
     assert "hotel cap?" in prompt.messages[0].content.text
+
+
+def test_results_are_compact_and_metered(mcp):
+    from docusense import savings
+
+    server, docs = mcp
+    (docs / "travel.md").write_text(POLICY_V1 + "\n## 2. Meals\n\n" + "Receipts are required for meals. " * 200 + "\n")
+    call(server, "add_document", path=str(docs / "travel.md"), wait_seconds=60)
+    raw = asyncio.run(server.call_tool("search", {"query": "hotels per night", "mode": "lexical", "k": 1}))
+    text = raw.content[0].text
+    assert "\n  " not in text and '"sha256"' not in text and '"score"' not in text  # no pretty-print, no per-hit noise
+
+    rows = [json.loads(line) for line in savings.ledger_path().read_text().splitlines()]
+    assert rows[-1]["tool"] == "search" and rows[-1]["versions"] == ["travel@v1"]
+    summary = savings.summarize({"travel@v1": 2000})
+    assert summary["paste"] == 2000 and 0 < summary["returned"] < summary["paste"]
+
+
+def test_savings_log_can_be_disabled(mcp, monkeypatch):
+    from docusense import savings
+
+    monkeypatch.setenv("DOCUSENSE_SAVINGS_LOG", "0")
+    server, _ = mcp
+    call(server, "list_documents")
+    assert not savings.ledger_path().exists()
