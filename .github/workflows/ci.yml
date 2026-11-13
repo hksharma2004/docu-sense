@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: tests (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run pytest -q
+
+  postgres:
+    name: tests (postgres + pgvector)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: docusense
+          POSTGRES_PASSWORD: docusense
+          POSTGRES_DB: docusense
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U docusense" --health-interval 2s --health-timeout 3s --health-retries 20
+    env:
+      DOCUSENSE_DATABASE_URL: postgresql://docusense:docusense@localhost:5433/docusense
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run pytest -q
+
+  package:
+    name: wheel installs without postgres
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - name: add a document and list it from a clean environment
+        env:
+          DOCUSENSE_HOME: ${{ runner.temp }}/ds-home
+        run: |
+          WHL="$GITHUB_WORKSPACE/$(ls dist/*.whl)"
+          cd "$RUNNER_TEMP"
+          printf '# Policy\n\n## 1. Limits\n\nLines MUST NOT exceed 1000 octets.\n' > policy.md
+          uvx --from "$WHL" docusense add policy.md --no-index
+          uvx --from "$WHL" docusense list
+          uvx --from "$WHL" docusense verify

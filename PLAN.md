@@ -379,13 +379,14 @@ Results are cached per (config, question, model) so Groq/OpenRouter rate limits 
 - [x] Tests (24): heading rules, parsers, render determinism, tampered blob fails, append-only triggers, idempotent re-ingest
 - **Exit check met:** 17 versions ingested (14 RFC PDFs + 3 Markdown) into 5956 spans. `docusense verify --deep` gives **5956/5956 (100%)**. Every TOC entry in every RFC was detected as a section.
 
-### Week 2 — Extraction, search, MCP
-- [ ] `references.py` (regex + reference-list mapping + resolution), `definitions.py`, `claims.py`, `tables.py`
-- [ ] `llm_fallback.py` (Groq, capped, logged), off by default
-- [ ] `bm25.py`, `embed.py`, hybrid search (reciprocal rank fusion)
-- [ ] `services.py` + `mcp_server.py` tools 1–9
-- [ ] Try it in MCP Inspector and in Claude Desktop/Cursor
-- **Exit check:** an agent answers "What does RFC 6750 say about the URI syntax it references?" by following `resolve_reference` to RFC 3986, with a verified citation.
+### Week 2 — Extraction, search, MCP ✅ DONE
+- [x] `references.py` (regex + reference-list tag mapping + resolution, `Obsoletes:`/`Updates:` relations), `definitions.py`, `claims.py`, `sentences.py`. Table detection stayed in the parser (§6.1), so there is no separate `tables.py`
+- [x] `llm_fallback.py` (Groq, capped at 20 calls per version, logs model ID, prompt hash and confidence), off by default. Not exercised yet because no API key is configured
+- [x] `bm25.py`, `embed.py` (on-disk cache keyed by text SHA-256), hybrid search (reciprocal rank fusion)
+- [x] `services.py` + `mcp_server.py` tools 1–9 (MCP Python SDK 2.x `MCPServer`), `.mcp.json` for Claude Code
+- [x] Tests: 59 passing (extractors, cross-doc resolution, search, evidence, idempotent re-extraction, tool registration)
+- **Exit check met (scripted):** `scripts/mcp_smoke.py` drives the real stdio MCP server. It runs search over RFC 6750, `resolve_reference` ([RFC3986] → uri@rfc3986), reads §3 and verifies the evidence (also deep). An LLM-agent run of the same question comes with the week-4 agent runner.
+- Corpus numbers: 1114 refs resolved, 910 point outside the corpus, 3 unresolved (RFC 2821 really does cite a §2.4.1 it doesn't have). There are ~2,000 claims and ~200 definitions.
 
 ### Week 3 — Versions, contradictions, context, viewer
 - [ ] `diff.py` (section/claim/reference), `blame.py`, affected docs, `conflicts.py`

@@ -8,7 +8,7 @@ verify_span(deep=True):  additionally re-parses the original source file and che
 
 from collections import defaultdict
 
-import psycopg
+from docusense.db.conn import Database
 
 from docusense.config import PARSER_VERSION
 from docusense.store.blobs import BlobStore, sha256_hex
@@ -21,7 +21,7 @@ FROM spans s JOIN versions v ON v.id = s.version_id
 
 
 class Verifier:
-    def __init__(self, conn: psycopg.Connection, store: BlobStore | None = None):
+    def __init__(self, conn: Database, store: BlobStore | None = None):
         self.conn = conn
         self.store = store or BlobStore()
         self._text_cache: dict[str, bytes | None] = {}

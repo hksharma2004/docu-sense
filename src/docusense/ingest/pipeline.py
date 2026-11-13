@@ -3,8 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-import psycopg
-from psycopg.types.json import Jsonb
+from docusense.db.conn import Database
 
 from docusense.config import PARSER_VERSION
 from docusense.ingest.md_parser import parse_markdown
@@ -14,11 +13,30 @@ from docusense.ingest.sections import build_sections
 from docusense.store.blobs import BlobStore, sha256_hex
 
 
+# File suffix → stored format. Plain text goes through the Markdown parser (paragraphs, no headings).
+FORMAT_BY_SUFFIX = {"pdf": "pdf", "md": "md", "markdown": "md", "txt": "md",
+                    "docx": "docx", "html": "html", "htm": "html"}
+
+
+def format_for(path: Path) -> str:
+    fmt = FORMAT_BY_SUFFIX.get(path.suffix.lstrip(".").lower())
+    if fmt is None:
+        raise ValueError(f"unsupported file type {path.suffix!r} (supported: {', '.join(sorted(FORMAT_BY_SUFFIX))})")
+    return fmt
+
+
 def parse_source(fmt: str, data: bytes) -> ParsedDoc:
     if fmt == "pdf":
         return parse_pdf(data)
     if fmt == "md":
         return parse_markdown(data)
+    if fmt in ("docx", "html"):
+        from docusense.ingest.convert import docx_to_markdown, html_to_markdown
+
+        markdown = docx_to_markdown(data) if fmt == "docx" else html_to_markdown(data)
+        doc = parse_markdown(markdown.encode("utf-8"))
+        doc.layout = fmt
+        return doc
     raise ValueError(f"unsupported format: {fmt}")
 
 
@@ -33,7 +51,7 @@ class IngestResult:
 
 
 def ingest_version(
-    conn: psycopg.Connection,
+    conn: Database,
     *,
     document_id: str,
     title: str,
@@ -46,7 +64,7 @@ def ingest_version(
 ) -> IngestResult:
     store = store or BlobStore()
     version_id = f"{document_id}@{label}"
-    fmt = path.suffix.lstrip(".").lower()
+    fmt = format_for(path)
     source = path.read_bytes()
     source_sha = sha256_hex(source)
 
@@ -74,7 +92,7 @@ def ingest_version(
                                      text_sha256, text_bytes, page_map, parser_version, origin)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (version_id, document_id, label, seq, fmt, str(path), source_sha, text_sha, len(data),
-             Jsonb(doc.page_starts), PARSER_VERSION, Jsonb(origin or {})),
+             conn.json(doc.page_starts), PARSER_VERSION, conn.json(origin or {})),
         )
 
         ids_by_ordinal: dict[int, int] = {}
@@ -100,13 +118,12 @@ def ingest_version(
                 ordinal, b.start, b.end, doc.page_of(b.start), sha256_hex(chunk),
                 chunk.decode("utf-8"), PARSER_VERSION, "layout",
             ))
-        with conn.cursor() as cur:
-            cur.executemany(
-                """INSERT INTO spans (version_id, section_id, kind, ordinal, start_byte, end_byte,
-                                      page, sha256, text, parser_version, extraction_method)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                span_rows,
-            )
+        conn.executemany(
+            """INSERT INTO spans (version_id, section_id, kind, ordinal, start_byte, end_byte,
+                                  page, sha256, text, parser_version, extraction_method)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            span_rows,
+        )
 
     return IngestResult(version_id, "ingested", len(sections), len(span_rows),
                         len(doc.page_starts), doc.layout)

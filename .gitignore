@@ -3,10 +3,13 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
-store/
+/store/
 corpus/raw/
 !corpus/raw/.gitkeep
 node_modules/
 .next/
 bench/results/cache/
 .DS_Store
+dist/
+bench/work/
+bench/results/
