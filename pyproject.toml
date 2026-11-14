@@ -1,6 +1,6 @@
 [project]
 name = "docusense-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server that lets AI agents read your PDFs and docs in sections, not wholesale: ~20x fewer tokens, hash-verified citations, version diffs"
 authors = [
     { name = "hksharma2004", email = "hksharma2004@users.noreply.github.com" }
