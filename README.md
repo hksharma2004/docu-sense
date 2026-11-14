@@ -1,49 +1,38 @@
 # DocuSense
 
-**Stop pasting whole documents into your agent.** DocuSense is a local MCP server that lets Claude, Cursor
-and other agents read your PDFs, Word files and docs *by section and by claim* — so they load the 300
-tokens that answer the question, not the 50,000-token file. Every passage comes back with a citation
-to its exact bytes and a SHA-256 you can verify.
+**Stop pasting whole documents into your agent.**
+
+DocuSense is a local MCP server that lets Claude, Cursor and other AI agents read your PDFs, Word files
+and docs *by section and by claim*, so they load the few hundred tokens that answer the question instead
+of the whole 50,000-token file. Every answer comes with a citation to the exact passage.
 
 ```
 pasting the docs   ████████████████████████████████████████  160,179 tokens
-vector RAG (top-5) ████                                         15,765 tokens
-DocuSense          ██                                            6,869 tokens   → 23x less than pasting, 2.3x less than RAG
+vector RAG         ████                                         15,765 tokens
+DocuSense          ██                                            6,869 tokens   → 23x less than pasting
 ```
-<sub>Three real tasks over RFC specs and a policy file; measured by [`scripts/token_demo.py`](scripts/token_demo.py) on the actual tool outputs.</sub>
 
-## Why not just RAG?
+<!-- mcp-name: io.github.hksharma2004/docusense -->
 
-Chunk-and-embed retrieval answers "find text like this". Most document questions are not that:
-
-| Question | Paste / file read | Vector RAG | DocuSense |
-|---|---|---|---|
-| *"What's the max PKCE verifier length? Cite it."* | 9,090 tok | 5,362 tok of nearby chunks | **478 tok**: the one paragraph + verified citation |
-| *"What changed between v1 and v2 of the spec?"* | 97,895 tok (both versions) | 5,292 tok, can't actually diff | **2,776 tok**: claim-level diff (`diff_versions`) |
-| *"Does our policy conflict with the standard?"* | 53,194 tok | 5,111 tok, hopes the right chunks surface | **3,615 tok**: `find_contradictions`, both sides cited |
-
-What makes the difference:
-
-- **Structure-aware.** Documents are parsed into a section tree, paragraphs, tables, definitions,
-  cross-references and normative claims (*MUST / MUST NOT / numeric limits*). Agents navigate like a
-  person with a table of contents instead of re-reading everything.
-- **Budgeted responses.** Every tool takes `max_tokens`; outputs are compact JSON with no padding.
-- **Versions are first-class.** Re-adding a changed file makes `v2`. Ask what changed, who changed it
-  (`blame`), or which other documents are affected — without loading either version.
-- **Verifiable.** Each passage is `ds://doc@version#§section:b<start>-<end>` + SHA-256. `get_evidence`
-  re-hashes against the stored bytes, so a hallucinated quote can't pass as a citation.
-- **Local and free.** Embedded SQLite + local embeddings. No API key, no server, nothing leaves your machine.
-- **Proves its own value.** `docusense savings` shows how many tokens your agents actually saved.
-
-## Get started (2 minutes)
+## Install
 
 ```bash
-uv tool install docusense-mcp           # or: pipx install docusense-mcp
-docusense setup                         # registers with Claude Code (also: claude-desktop | cursor | print)
-docusense add ~/work/specs handbook.pdf # PDF, .docx, HTML, Markdown, .txt — folders scanned recursively
+uv tool install docusense-mcp        # or: pipx install docusense-mcp
+docusense setup                      # connects to Claude Code
+docusense add ~/docs contract.pdf    # files or whole folders
 ```
 
-Then ask your agent about your documents. Later, see what it saved (example output):
+That's it. Ask your agent about your documents.
+
+Other clients: `docusense setup claude-desktop`, `docusense setup cursor`, or `docusense setup print`
+for a config snippet to paste anywhere. Claude Desktop users can also install the one-click
+`docusense.mcpb` from the [releases page](https://github.com/hksharma2004/docu-sense/releases).
+
+Supported files: PDF, Word (.docx), HTML, Markdown, plain text.
+
+## See what you saved
+
+Example:
 
 ```console
 $ docusense savings
@@ -53,51 +42,57 @@ pasting the docs:          912,440 tokens
 saved:                     871,138 tokens (22.1x less context)
 ```
 
-The first indexing run downloads the local embedding model (`bge-small-en-v1.5`, ~130 MB) once.
-Claude Desktop users can also install the one-click `docusense.mcpb` bundle from the
-[releases page](https://github.com/hksharma2004/docu-sense/releases).
+## Why it uses fewer tokens
 
-<!-- mcp-name: io.github.hksharma2004/docusense -->
+| You ask | Pasting the docs | Vector RAG | DocuSense |
+|---|---|---|---|
+| A precise fact, with a citation | 9,090 tokens | 5,362 tokens of nearby chunks | **478 tokens**: the exact paragraph |
+| What changed between two versions | 97,895 tokens | 5,292 tokens, can't diff | **2,776 tokens**: just the changes |
+| Does document A conflict with B? | 53,194 tokens | 5,111 tokens, hit or miss | **3,615 tokens**: both conflicting passages |
 
+- **Reads like a person.** Your agent sees the table of contents, opens the right section, and reads
+  only the paragraph it needs.
+- **Tracks versions.** Add a changed file again and DocuSense keeps both versions. Ask what changed
+  without loading either one.
+- **Finds contradictions** between documents, with both sides cited.
+- **Citations you can trust.** Every passage is fingerprinted, so a made-up quote can't pass as a real one.
+- **Private and free.** Runs on your machine. No API key, no account, nothing uploaded.
 
-Agents can add files themselves with the `add_document` tool (restricted to `DOCUSENSE_ADD_ROOTS`,
-default: your home folder).
+## Great for
 
-## Good fits
+- Long specs, API references and design docs while coding in Claude Code or Cursor
+- Checking policies against standards and tracking revisions
+- Contracts, handbooks and research papers where you need exact quotes and page numbers
+- Any agent that keeps re-reading the same large files
 
-- **Engineers** working against long specs, RFCs, API references, design docs and ADRs in Claude Code / Cursor.
-- **Compliance and policy work**: checking internal policies against standards, tracking what changed between revisions.
-- **Contracts, handbooks, research papers**: precise quotes with page numbers instead of paraphrase.
-- **Any long-running agent** whose context fills up from repeatedly reading the same large files.
+If your documents are a few short files that already fit in context, you don't need DocuSense.
 
-Less useful for: a handful of short files that fit comfortably in context anyway. The tool list costs
-~3.2k tokens per session (~2.3k with `DOCUSENSE_TOOLS=core`), which one avoided document read repays.
+## What your agent can do
 
-## Tools
-
-| Purpose | Tools |
+| | |
 |---|---|
-| Orient | `list_documents`, `get_section_map`, `read_section` |
-| Find | `search` (hybrid BM25 + embeddings), `search_claims`, `lookup_definition`, `resolve_reference` |
-| Verify | `get_evidence`, `verify_span`, `assemble_context` (packs evidence into a token budget) |
-| Change over time | `list_versions`, `diff_versions`, `blame`, `find_affected_documents`, `find_contradictions` |
-| Ingest | `add_document`, `ingest_status` |
+| Browse | list documents, view the table of contents, read a section |
+| Find | search, find requirements and rules, look up definitions, follow cross-references |
+| Cite | get a verified quote, pack evidence into a token budget |
+| Compare | list versions, diff versions, see when a line changed, find contradictions, find affected documents |
+| Add | add files on its own and track progress |
 
-Plus resources (`docusense://documents`, canonical text per version) and prompts (`answer_with_evidence`,
-`what_changed`, `audit_contradictions`). `DOCUSENSE_TOOLS=core` exposes 11 tools for tight budgets.
+Set `DOCUSENSE_TOOLS=core` for a smaller tool set if your agent's context is tight.
 
-## Accuracy
+## Settings
 
-On a 14-question agent benchmark over the RFC corpus (multi-hop, structural and temporal questions),
-an agent using DocuSense answered 100% correctly with 93% citation hit-rate
-([`bench/`](bench/), `nvidia/nemotron-3-ultra` via OpenRouter). Retrieval-only eval on non-RFC PDFs
-(IRS Pub 463, the Transformer paper): hybrid hit@5 0.85, MRR 0.65 ([`scripts/eval_retrieval.py`](scripts/eval_retrieval.py)).
+| Variable | Default | |
+|---|---|---|
+| `DOCUSENSE_HOME` | `~/.docusense` | where your data lives |
+| `DOCUSENSE_ADD_ROOTS` | your home folder | folders the agent may add files from |
+| `DOCUSENSE_TOOLS` | `all` | `core` for fewer tools |
+| `DOCUSENSE_SAVINGS_LOG` | `1` | `0` turns off the local savings log |
 
-## More
+Share one library across several agents: `docusense serve-mcp --http` (set `DOCUSENSE_HTTP_TOKEN`
+when exposing it beyond localhost).
 
-- Other ways to run it: `docusense serve-mcp --http` (Streamable HTTP, several agents sharing one store;
-  non-loopback requires `DOCUSENSE_HTTP_TOKEN`), Postgres + pgvector backend, CLI search.
-- Configuration, development, provenance model and releasing: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-- Inspect the tools: `npx @modelcontextprotocol/inspector docusense serve-mcp`.
+The first time you add documents, DocuSense downloads a small local search model (~130 MB) once.
 
-MIT licensed. Originally built as a B.Tech IT project (USICT, GGSIPU); see [PLAN.md](PLAN.md).
+## License
+
+MIT
