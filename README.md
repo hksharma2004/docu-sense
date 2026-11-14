@@ -57,6 +57,9 @@ The first indexing run downloads the local embedding model (`bge-small-en-v1.5`,
 Claude Desktop users can also install the one-click `docusense.mcpb` bundle from the
 [releases page](https://github.com/hksharma2004/docu-sense/releases).
 
+<!-- mcp-name: io.github.hksharma2004/docusense -->
+
+
 Agents can add files themselves with the `add_document` tool (restricted to `DOCUSENSE_ADD_ROOTS`,
 default: your home folder).
 
