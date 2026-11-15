@@ -1,0 +1,62 @@
+export const metadata = { title: "Citations you can trust" }
+
+AI agents sometimes quote things that aren't quite there. DocuSense is built so that every quote your agent
+gives you can be traced to the exact text it came from, and checked.
+
+## What a citation looks like
+
+Every passage your agent reads comes with a citation like this:
+
+```text
+ds://employee-handbook@v2#§4.3:b812-951
+```
+
+| Part | Means |
+|---|---|
+| `employee-handbook@v2` | the document and version |
+| `§4.3` | the section |
+| `b812-951` | the exact position of the text in that version |
+
+Your agent is instructed to include these citations in its answers, so you can always see where a claim
+came from.
+
+## Every quote is fingerprinted
+
+When DocuSense reads a document, it stores a unique fingerprint for every passage. Before your agent uses
+a passage as evidence, DocuSense checks the text still matches its fingerprint.
+
+That protects you from:
+
+- **Made-up quotes.** Text that isn't in your documents can't be verified.
+- **Changed text.** If stored text were altered, it would fail the check, and your agent is told never to
+  cite it.
+- **Outdated answers.** If a passage comes from an older version, your agent is told there's a newer one
+  and checks it first.
+
+## Check everything yourself
+
+```bash
+docusense verify
+```
+
+```text
+version                  spans   verified
+employee-handbook@v1     212     212
+employee-handbook@v2     219     219
+431/431 spans verified (100.0%)
+```
+
+Add `--deep` to also re-read the original files and confirm they still produce exactly the same text.
+
+## Ask for evidence
+
+A few ways to get well-sourced answers:
+
+> Answer with the exact wording and a citation for every claim.
+
+> Is this quote really in the handbook: "employees may carry over 10 days"?
+
+> Give me the evidence for that answer, within 1,000 tokens.
+
+For the last one, DocuSense packs the strongest verified passages into the budget you give, adds the
+latest wording if a passage is outdated, and includes any conflicting statements from other documents.

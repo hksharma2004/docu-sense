@@ -1,0 +1,98 @@
+export const metadata = { title: "Settings" }
+
+DocuSense works without any setup. These settings are optional.
+
+## How to change a setting
+
+Put settings in `~/.docusense/.env`:
+
+```env
+DOCUSENSE_TOOLS=core
+DOCUSENSE_ADD_ROOTS=/Users/you/Documents
+```
+
+Or set them for one app, in its MCP config:
+
+```json
+{
+  "mcpServers": {
+    "docusense": {
+      "command": "/Users/you/.local/bin/docusense",
+      "args": ["serve-mcp"],
+      "env": { "DOCUSENSE_TOOLS": "core" }
+    }
+  }
+}
+```
+
+## All settings
+
+| Setting | Default | |
+|---|---|---|
+| `DOCUSENSE_HOME` | `~/.docusense` | where your library is stored |
+| `DOCUSENSE_ADD_ROOTS` | your home folder | folders your agent may add files from |
+| `DOCUSENSE_TOOLS` | `all` | `core` for a lighter tool set |
+| `DOCUSENSE_SAVINGS_LOG` | `1` | `0` turns off the savings log |
+| `DOCUSENSE_HTTP_TOKEN` | | password for a [shared server](/docs/guides/team) |
+
+## Allowed folders
+
+Your agent can only add files from these folders. Separate several with commas:
+
+```env
+DOCUSENSE_ADD_ROOTS=/Users/you/Documents,/Users/you/work/specs
+```
+
+This doesn't affect `docusense add`, which you run yourself.
+
+## Lighter tool set
+
+Each tool your agent has uses a little of its context. If your agent's context is tight, use the core set:
+11 everyday tools instead of 17.
+
+```env
+DOCUSENSE_TOOLS=core
+```
+
+See which tools are included in [Agent tools](/docs/reference/tools).
+
+## Library location
+
+Keep your library somewhere else, for example a synced folder or a separate library per project:
+
+```env
+DOCUSENSE_HOME=/Users/you/Work/docusense-library
+```
+
+## AI review
+
+Optional. DocuSense never needs an AI model to work. You can choose to have one review possible
+contradictions, with `docusense conflicts --llm-judge`. Set a key for one provider:
+
+```env
+GROQ_API_KEY=…
+# or ANTHROPIC_API_KEY=…   (install with: uv tool install 'docusense-mcp[anthropic]')
+# or OPENAI_API_KEY=…
+```
+
+You can also use a local model with Ollama:
+
+```env
+DOCUSENSE_LLM_PROVIDER=ollama
+DOCUSENSE_LLM_MODEL=llama3.1
+```
+
+## PostgreSQL
+
+For large libraries shared by a team, DocuSense can store everything in PostgreSQL instead of its built-in
+database:
+
+```bash
+uv tool install 'docusense-mcp[postgres]'
+```
+
+```env
+DOCUSENSE_DATABASE_URL=postgresql://user:password@host:5432/docusense
+```
+
+The database needs the pgvector extension.

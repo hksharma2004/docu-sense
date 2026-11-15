@@ -1,0 +1,80 @@
+export const metadata = { title: "FAQ & troubleshooting" }
+
+## Questions
+
+### Does anything leave my computer?
+
+No. Your documents are read, stored and searched on your machine. The only download is a small search
+model, once. If you turn on the optional AI review, only the statements being reviewed are sent to the
+provider you chose.
+
+### Do I need an API key or account?
+
+No.
+
+### How is this different from RAG?
+
+RAG hands your agent chunks of text that look similar to the question. DocuSense lets your agent navigate
+your documents like a person, quote exact passages with citations you can check, and answer questions
+RAG can't: what changed between versions, and where documents contradict each other.
+
+### Which files are supported?
+
+PDF, Word (`.docx`), HTML, Markdown and plain text. Scanned PDFs need OCR first. Spreadsheets and slides
+aren't supported yet.
+
+### When is DocuSense not worth it?
+
+If your documents are a few short files that fit comfortably in your agent's context, just paste them.
+`docusense savings` shows whether you're actually saving.
+
+### Can I delete a document?
+
+DocuSense keeps history on purpose, so there's no single-document delete. To start fresh, run
+`docusense db reset --yes`, or point `DOCUSENSE_HOME` at a new folder.
+
+### Where is my data?
+
+In `~/.docusense`. Run `docusense info` to see the exact location.
+
+## Troubleshooting
+
+### My agent doesn't see DocuSense
+
+1. Restart the app after running `docusense setup`.
+2. In Claude Code, type `/mcp` and check **docusense** is listed.
+3. Run `docusense setup` again for your app. It points the app at the exact location of DocuSense.
+4. Still nothing? Run `docusense serve-mcp` in a terminal. It should sit quietly waiting; if it prints an
+   error, that's the problem. Press Ctrl+C to stop it.
+
+### "docusense: command not found"
+
+Run `uv tool update-shell`, then open a new terminal.
+
+### "claude CLI not found"
+
+`docusense setup` connects to Claude Code by default. If you use a different app, run
+`docusense setup claude-desktop`, `docusense setup cursor` or `docusense setup print`.
+
+### "no search index yet"
+
+You haven't added any documents yet. Run `docusense add <file or folder>`. If you have, run
+`docusense index`.
+
+### Adding documents is slow the first time
+
+The first time, DocuSense downloads its search model (~130 MB). After that, adding documents is quick.
+
+### "… is outside the allowed folders"
+
+Your agent tried to add a file from a folder it isn't allowed to read. Add that folder to
+[allowed folders](/docs/reference/settings#allowed-folders), or add the file yourself with
+`docusense add`.
+
+### "unknown document"
+
+The message lists the documents you have. Run `docusense list` to check names.
+
+### A PDF has no text or sections
+
+It's probably a scanned PDF. Run it through OCR, then add it again.

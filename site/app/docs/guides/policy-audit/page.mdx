@@ -1,0 +1,46 @@
+export const metadata = { title: "Check a policy against a standard" }
+
+Use DocuSense to check an internal policy against the standard it's meant to follow, and get a list of
+every place they disagree, with both sides quoted.
+
+<Steps>
+  <Step title="Add both documents">
+    ```bash
+    docusense add policies/mail-policy.md
+    docusense add standards/rfc5321.pdf --doc smtp
+    ```
+  </Step>
+  <Step title="Ask for an audit">
+    In your agent:
+
+    > Audit the mail policy against the SMTP standard. For each conflict, quote both sides with citations
+    > and tell me whether it looks like a real problem, a deliberate exception, or a false alarm.
+
+    Or pick the built-in **Audit for contradictions** prompt.
+  </Step>
+  <Step title="Review the results">
+    You'll get a list like this:
+
+    | Policy says | Standard says |
+    |---|---|
+    | Return undeliverable mail after **2 days** | Give up after at least **4-5 days** |
+    | Retry after **15 minutes** | Retry interval at least **30 minutes** |
+    | **Must not** support VRFY | **Should** support VRFY |
+
+    Decide what to change. DocuSense never makes that call for you.
+  </Step>
+  <Step title="Check the fixes">
+    After the policy is updated, add it again and ask:
+
+    > Which conflicts with the SMTP standard were fixed in the new mail policy?
+  </Step>
+</Steps>
+
+## Tips
+
+- **Pull every rule on a topic** from both documents: "List every requirement about retries in the
+  policy and in the standard."
+- **Check definitions first.** Many apparent conflicts are two documents using the same word differently:
+  "How does each document define 'relay server'?"
+- **Want fewer false alarms?** Run `docusense conflicts --llm-judge` to have an AI model review each match.
+  See [Settings](/docs/reference/settings#ai-review).

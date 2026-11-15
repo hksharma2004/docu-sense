@@ -1,0 +1,53 @@
+export const metadata = { title: "See what you saved" }
+
+DocuSense keeps track of how much your agents read through it, and compares that with what pasting the
+same documents would have cost.
+
+```bash
+docusense savings
+```
+
+```text
+12 agent sessions · 87 tool calls
+read via DocuSense:         41,302 tokens
+pasting the docs:          912,440 tokens
+saved:                     871,138 tokens (22.1x less context)
+most used: search ×31, read_section ×22, get_section_map ×14, get_evidence ×9
+```
+
+## Options
+
+```bash
+docusense savings --days 7     # just the last week
+docusense savings --json       # for scripts and dashboards
+```
+
+## How it's counted
+
+- **Read via DocuSense** is everything your agent actually received.
+- **Pasting the docs** is each document your agent used, counted once per session, as if you had pasted
+  it in.
+
+The comparison is generous to pasting: a document read ten times in one session still only counts once.
+
+## "No saving"?
+
+If your documents are short, pasting them can be cheaper, and `savings` will tell you so honestly.
+DocuSense pays off on long documents, many documents, and documents your agent keeps coming back to.
+
+## Typical savings
+
+| Question | Pasting | DocuSense |
+|---|---|---|
+| One precise fact, with a citation | 9,090 tokens | **478** |
+| What changed between two versions | 97,895 tokens | **2,776** |
+| Does document A conflict with B? | 53,194 tokens | **3,615** |
+
+## Privacy
+
+The savings log stays on your computer. It records only tool names and sizes, never your questions or
+document text. To turn it off:
+
+```bash
+export DOCUSENSE_SAVINGS_LOG=0
+```

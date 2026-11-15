@@ -1,0 +1,55 @@
+export const metadata = { title: "Asking questions" }
+
+Once your documents are added, just ask your agent in plain language. You don't need to name tools or
+sections. DocuSense gives your agent the right moves, and it picks the cheapest one for your question.
+
+## How your agent finds answers
+
+Like a person skimming a long document:
+
+1. **Looks at the table of contents** to see what's where.
+2. **Searches** by meaning and by exact words, so "how long do we keep retrying?" finds a section
+   titled "Retry Interval".
+3. **Opens only the section that matters**, not the 40 pages around it.
+4. **Quotes the passage** with a citation you can check.
+
+## Kinds of questions it's good at
+
+| You ask | What it does |
+|---|---|
+| "What does the handbook say about remote work?" | Finds and reads the relevant section |
+| "What's the maximum file size we accept?" | Finds the exact rule and number |
+| "List every requirement about passwords." | Collects every rule on that topic, across documents |
+| "What does 'eligible employee' mean here?" | Finds where the term is defined |
+| "What does Section 4.2 of the contract say?" | Opens that section directly |
+| "Section 3 refers to 'Appendix B'. What's in it?" | Follows the reference |
+
+## Rules and requirements
+
+DocuSense recognises statements that set rules: **must**, **must not**, **should**, **may**, and limits
+with numbers like "within 30 days" or "up to 1,000 characters". That means you can ask things like:
+
+> What must contractors do before accessing customer data?
+
+> Which rules mention a time limit?
+
+and get the precise sentences back, rather than whole pages.
+
+## Tips for better answers
+
+- **Ask for the source.** "Quote the exact wording" or "cite the section" makes the agent include
+  citations you can check.
+- **Name the document** if you have several similar ones: "in the 2026 handbook…".
+- **Ask about changes directly.** "What changed in the policy?" is much cheaper than asking the agent to
+  read both versions.
+- **Use the built-in prompts.** In apps that support them, pick **Answer with verified citations**,
+  **What changed between versions** or **Audit for contradictions**.
+
+## Search from the terminal
+
+You can search your library yourself too:
+
+```bash
+docusense search "remote work allowance"
+docusense define "eligible employee"
+```

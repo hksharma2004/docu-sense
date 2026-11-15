@@ -1,0 +1,55 @@
+export const metadata = { title: "Installation" }
+
+## Install
+
+Run this in your terminal:
+
+```bash
+uv tool install docusense-mcp
+```
+
+Prefer pipx? That works too:
+
+```bash
+pipx install docusense-mcp
+```
+
+Check it's installed:
+
+```bash
+docusense info
+```
+
+You're ready. Next, [connect your agent](/docs/connect) or follow the [Quickstart](/docs/quickstart).
+
+<Callout type="note" title="Don't have uv?">
+  uv is a fast Python installer. Get it from [docs.astral.sh/uv](https://docs.astral.sh/uv/) with one
+  command, and it takes care of Python for you.
+</Callout>
+
+## What you need
+
+- macOS, Windows or Linux
+- Python 3.12 or newer (uv installs it automatically)
+- About 150 MB of disk space
+
+No account, API key or server to set up.
+
+<Callout type="note" title="First use">
+  The first time you add documents, DocuSense downloads a small search model (~130 MB). After that it
+  works fully offline.
+</Callout>
+
+## Update
+
+```bash
+uv tool upgrade docusense-mcp
+```
+
+## Uninstall
+
+```bash
+uv tool uninstall docusense-mcp
+```
+
+Your documents are kept in `~/.docusense`. Delete that folder too if you want to remove them.
