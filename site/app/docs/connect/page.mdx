@@ -1,0 +1,68 @@
+export const metadata = { title: "Connect your agent" }
+
+One command connects DocuSense to your agent:
+
+| App | Command |
+|---|---|
+| Claude Code | `docusense setup` |
+| Claude Desktop | `docusense setup claude-desktop` |
+| Cursor | `docusense setup cursor` |
+| Any other app | `docusense setup print` |
+
+## Claude Code
+
+```bash
+docusense setup
+```
+
+DocuSense is now available in every project. To check, type `/mcp` in a Claude Code session and look for
+**docusense**.
+
+## Claude Desktop
+
+```bash
+docusense setup claude-desktop
+```
+
+Then restart Claude Desktop.
+
+## Cursor
+
+```bash
+docusense setup cursor
+```
+
+Then reload Cursor.
+
+## Any MCP client
+
+Works with any app that supports MCP, such as VS Code, Windsurf or Zed. Print the config:
+
+```bash
+docusense setup print
+```
+
+and paste it into your app's MCP settings. It looks like this:
+
+```json
+{
+  "mcpServers": {
+    "docusense": {
+      "command": "/Users/you/.local/bin/docusense",
+      "args": ["serve-mcp"]
+    }
+  }
+}
+```
+
+## Check it works
+
+Ask your agent: **"What documents do I have in DocuSense?"**
+
+If it doesn't recognise DocuSense, restart the app. Still stuck? See the
+[FAQ](/docs/faq#my-agent-doesnt-see-docusense).
+
+## Short on context?
+
+If your agent has a small context window, you can give it a lighter set of tools that covers everyday use.
+See [Settings](/docs/reference/settings#lighter-tool-set).

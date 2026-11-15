@@ -1,0 +1,86 @@
+export const metadata = { title: "Adding documents" }
+
+## Add files or folders
+
+```bash
+docusense add report.pdf
+docusense add ~/Documents/policies
+docusense add handbook.docx specs/ notes.md
+```
+
+Folders are added with everything inside them. Run `docusense list` to see your library.
+
+## Supported files
+
+| Type | Extensions |
+|---|---|
+| PDF | `.pdf` (including multi-column layouts) |
+| Word | `.docx` |
+| Web pages | `.html` |
+| Markdown | `.md` |
+| Text | `.txt` |
+
+<Callout type="note">
+  Scanned PDFs that are just images of text need to be run through OCR first.
+</Callout>
+
+## Names
+
+Each document gets a short name based on its file name, which you and your agent use to refer to it:
+
+| File | Name |
+|---|---|
+| `Employee Handbook.pdf` | `employee-handbook` |
+| `Mail_Policy.md` | `mail-policy` |
+
+Choose your own name and title when adding a single file:
+
+```bash
+docusense add hb-final-v3.pdf --doc employee-handbook --title "Employee Handbook"
+```
+
+## Versions
+
+When a document changes, just add it again. DocuSense keeps every version:
+
+```bash
+docusense add employee-handbook.pdf      # employee-handbook v1
+# …the handbook is updated…
+docusense add employee-handbook.pdf      # employee-handbook v2 (v1 is kept)
+```
+
+- **Unchanged files are skipped**, so it's safe to re-add a whole folder any time.
+- **Your agent always reads the latest version** by default, and is told when a passage comes from an
+  older one.
+- **Old versions are never overwritten**, so you can always ask what changed. See
+  [Tracking changes](/docs/tracking-changes).
+
+Want meaningful version names? Add a label:
+
+```bash
+docusense add handbook-2026.pdf --doc employee-handbook --label 2026
+```
+
+## Let your agent add files
+
+Your agent can add documents too. Just ask:
+
+> Add everything in ~/Documents/contracts to DocuSense.
+
+Large folders are added in the background, and your agent will check back until they're ready. For safety,
+agents can only add files from your home folder. You can change which folders are allowed in
+[Settings](/docs/reference/settings#allowed-folders).
+
+## See your library
+
+```bash
+docusense list
+```
+
+```text
+document            title                versions (oldest → newest)
+employee-handbook   Employee Handbook    v1, v2*
+mail-policy         Mail Policy          v1*
+```
+
+`*` marks the latest version.

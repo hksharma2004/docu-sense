@@ -1,0 +1,59 @@
+export const metadata = { title: "Finding contradictions" }
+
+When you have several documents, they don't always agree. DocuSense spots statements that conflict and
+shows you **both sides, quoted and cited**.
+
+## Ask for conflicts
+
+> Do any of my documents contradict each other?
+
+> Does our mail policy conflict with RFC 5321?
+
+```text
+mail-policy §4.2                         vs   RFC 5321 §4.5.4.1
+"Undeliverable mail is returned to the        "The give-up time generally needs to
+ sender after 2 days."                         be at least 4-5 days."
+                                              → different values
+```
+
+## What it catches
+
+| Kind | Example |
+|---|---|
+| **Different numbers** for the same thing | "2 days" vs "at least 4-5 days"; "15 minutes" vs "30 minutes" |
+| **Opposite rules** | "must not support X" vs "should support X" |
+
+Units are compared sensibly, so "90 minutes" and "2 hours" are recognised as different values of the same
+thing.
+
+## It never picks a winner
+
+A conflict might be a mistake, an intentional stricter local rule, or two statements about different
+things. Only you know which. DocuSense shows both sides with citations and leaves the decision to you.
+
+The built-in **Audit for contradictions** prompt asks your agent to sort each conflict into:
+
+- a **real conflict** to fix,
+- a **deliberate exception** to document, or
+- a **false alarm**.
+
+## Fewer false alarms
+
+Detection is tuned to catch as much as possible, so some matches will be false alarms. For a stricter
+pass, you can have an AI model review each one:
+
+```bash
+docusense conflicts --llm-judge
+```
+
+This needs an API key for Groq, Anthropic or OpenAI. See [Settings](/docs/reference/settings#ai-review).
+Confirmed conflicts are shown first and rejected ones are hidden.
+
+## Conflicts over time
+
+By default only the latest version of each document is compared. Ask for history to see conflicts that
+were fixed in a newer version:
+
+> Show contradictions involving the mail policy, including older versions.
+
+See [Check a policy against a standard](/docs/guides/policy-audit) for a full walkthrough.

@@ -1,0 +1,71 @@
+export const metadata = { title: "Quickstart" }
+
+<Steps>
+  <Step title="Install">
+    ```bash
+    uv tool install docusense-mcp
+    ```
+  </Step>
+  <Step title="Connect your agent">
+    ```bash
+    docusense setup
+    ```
+
+    This connects DocuSense to Claude Code. Using Claude Desktop or Cursor? Run
+    `docusense setup claude-desktop` or `docusense setup cursor`. More in [Connect your agent](/docs/connect).
+  </Step>
+  <Step title="Add your documents">
+    Add files, whole folders, or both:
+
+    ```bash
+    docusense add ~/Documents/policies contract.pdf
+    ```
+
+    Run `docusense list` to see what was added.
+  </Step>
+  <Step title="Ask">
+    Open your agent and ask about your documents:
+
+    > What's our policy on carrying over annual leave? Quote the exact rule.
+
+    Your agent finds the right section, reads just that part, and answers with a citation you can check.
+  </Step>
+  <Step title="See what you saved">
+    ```bash
+    docusense savings
+    ```
+
+    ```text
+    12 agent sessions · 87 tool calls
+    read via DocuSense:         41,302 tokens
+    pasting the docs:          912,440 tokens
+    saved:                     871,138 tokens (22.1x less context)
+    ```
+  </Step>
+</Steps>
+
+## Things to try
+
+| Ask your agent | What happens |
+|---|---|
+| "What documents do I have?" | Lists your library and versions |
+| "Summarise section 4 of the handbook." | Reads only section 4 |
+| "What are all the rules about passwords?" | Finds every requirement on that topic |
+| "What changed in the new version of the policy?" | Shows just the differences |
+| "Does our policy conflict with the standard?" | Shows both sides of each conflict |
+
+## Updating a document
+
+When a document changes, add it again:
+
+```bash
+docusense add employee-handbook.pdf
+```
+
+DocuSense keeps the old version and adds the new one, so you can ask what changed.
+See [Tracking changes](/docs/tracking-changes).
+
+<Cards>
+  <Card title="Adding documents" href="/docs/adding-documents">File types, folders, naming and versions.</Card>
+  <Card title="Asking questions" href="/docs/asking-questions">Get better answers from your agent.</Card>
+</Cards>

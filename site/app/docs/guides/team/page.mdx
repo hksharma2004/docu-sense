@@ -1,0 +1,64 @@
+export const metadata = { title: "Share with your team" }
+
+By default, DocuSense runs alongside your own agent with your own library. You can also run it as a
+small server, so several agents, or several people, share one document library.
+
+## Start a shared server
+
+```bash
+docusense serve-mcp --http
+```
+
+```text
+DocuSense MCP (Streamable HTTP) on http://127.0.0.1:8765/mcp
+```
+
+Point any MCP app that supports remote servers at that address.
+
+## Protect it with a token
+
+```bash
+export DOCUSENSE_HTTP_TOKEN="$(openssl rand -hex 32)"
+docusense serve-mcp --http
+```
+
+Every app must now send the token. In your app's MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "docusense": {
+      "url": "https://docs.your-company.com/mcp",
+      "headers": { "Authorization": "Bearer <your token>" }
+    }
+  }
+}
+```
+
+## Open it to your network
+
+To accept connections from other machines, listen on all addresses. DocuSense won't do this unless a
+token is set:
+
+```bash
+docusense serve-mcp --http --host 0.0.0.0 --port 8765
+```
+
+<Callout type="warning" title="Before you share">
+  Anyone with the token can read every document in the library. Use HTTPS (for example behind Caddy or
+  nginx) on any network you don't fully trust.
+</Callout>
+
+## Adding documents
+
+Add documents on the server machine with `docusense add`, or let agents add them. Agents can only add
+files from folders you allow; for a shared server, point this at a dedicated folder:
+
+```bash
+export DOCUSENSE_ADD_ROOTS=/srv/team-docs
+```
+
+## Bigger teams
+
+For a large shared library, DocuSense can use PostgreSQL instead of its built-in database. See
+[Settings](/docs/reference/settings#postgresql).

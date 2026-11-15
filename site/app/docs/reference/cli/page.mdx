@@ -1,0 +1,81 @@
+export const metadata = { title: "Commands" }
+
+Run `docusense --help`, or `docusense <command> --help` for details on any command.
+
+## Everyday
+
+| Command | What it does |
+|---|---|
+| `docusense setup` | Connect DocuSense to your agent ([more](/docs/connect)) |
+| `docusense add <files or folders>` | Add documents, or new versions of them |
+| `docusense list` | Show your documents and their versions |
+| `docusense search "<question>"` | Search your library |
+| `docusense define "<term>"` | Find where a term is defined |
+| `docusense savings` | See how many tokens you've saved |
+| `docusense info` | Show where your library is stored and how big it is |
+
+### setup
+
+```bash
+docusense setup                    # Claude Code
+docusense setup claude-desktop
+docusense setup cursor
+docusense setup print              # config to paste into any other app
+```
+
+### add
+
+```bash
+docusense add report.pdf ~/Documents/policies
+docusense add hb.pdf --doc employee-handbook --title "Employee Handbook" --label 2026
+```
+
+| Option | |
+|---|---|
+| `--doc` | choose the document's name (one file at a time) |
+| `--title` | give the document a title |
+| `--label` | name this version, instead of v1, v2… (one file at a time) |
+
+### search
+
+```bash
+docusense search "remote work allowance"
+docusense search "line length" --doc mail-policy --k 3
+```
+
+| Option | |
+|---|---|
+| `--doc` | only search one document or version |
+| `--k` | how many results (default 5) |
+| `--mode` | `hybrid` (default), `semantic` for meaning, `lexical` for exact words |
+
+### savings
+
+```bash
+docusense savings
+docusense savings --days 7 --json
+```
+
+## Checking and maintenance
+
+| Command | What it does |
+|---|---|
+| `docusense verify` | Check every stored passage is genuine. `--deep` also re-reads the original files. |
+| `docusense sections <document>@<version>` | Print a version's table of contents |
+| `docusense stats` | Counts of pages, sections and rules per version |
+| `docusense conflicts` | Re-check documents for contradictions. `--llm-judge` adds an AI review. |
+| `docusense index` | Rebuild the search index |
+| `docusense db reset --yes` | Delete your whole library and start fresh |
+
+<Callout type="warning">
+  `db reset` permanently deletes every document and version in your library.
+</Callout>
+
+## Running the server
+
+Your agent app starts DocuSense automatically, so you rarely need these.
+
+| Command | What it does |
+|---|---|
+| `docusense serve-mcp` | Run DocuSense for one agent |
+| `docusense serve-mcp --http` | Run a shared server ([more](/docs/guides/team)) |

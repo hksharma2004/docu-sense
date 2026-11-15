@@ -1,0 +1,101 @@
+export const metadata = { title: "Agent tools" }
+
+These are the tools DocuSense gives your agent. You don't need to call them yourself; just ask in plain
+language and your agent picks the right ones. This page is here so you know what's possible.
+
+## Browse
+
+<Tool name="list_documents" core>
+  Lists every document in your library and its versions.
+</Tool>
+
+<Tool name="get_section_map" core>
+  Shows a document's table of contents, so the agent can go straight to the right section.
+</Tool>
+
+<Tool name="read_section" core>
+  Reads one section (by number, like `4.2`, or by title, like `Terminology`), with a citation for every
+  paragraph.
+</Tool>
+
+## Find
+
+<Tool name="search" core>
+  Finds the passages that best match a question, by meaning and by exact words. Can be limited to one
+  document or version.
+</Tool>
+
+<Tool name="search_claims" core>
+  Finds rules and requirements: what must, must not, should or may happen, and limits with numbers. Filter
+  by topic, by who the rule applies to, or by strength.
+</Tool>
+
+<Tool name="lookup_definition">
+  Finds where a term is defined, and what the definition says.
+</Tool>
+
+<Tool name="resolve_reference">
+  Follows references like "see Section 3.4" or "as defined in RFC 5322" to the text they point to.
+</Tool>
+
+## Cite
+
+<Tool name="get_evidence" core>
+  Returns one passage in full, with its source, and checks it against its fingerprint.
+</Tool>
+
+<Tool name="verify_span">
+  Re-checks that a passage is genuine. Optionally re-reads the original file too.
+</Tool>
+
+<Tool name="assemble_context" core>
+  Packs the best verified evidence for an answer into a token budget, adding newer wording and conflicting
+  statements where relevant.
+</Tool>
+
+## Compare
+
+<Tool name="list_versions">
+  Shows a document's version history.
+</Tool>
+
+<Tool name="diff_versions" core>
+  Shows what changed between two versions: by section, by rule, or by references.
+</Tool>
+
+<Tool name="blame">
+  Finds which version a passage first appeared in, and how it changed.
+</Tool>
+
+<Tool name="find_affected_documents">
+  Lists the documents that reference a given document, so you know what to review when it changes.
+</Tool>
+
+<Tool name="find_contradictions" core>
+  Finds statements in different documents that disagree, with both sides quoted.
+</Tool>
+
+## Add
+
+<Tool name="add_document" core writes>
+  Adds a file or folder to your library. Large additions continue in the background.
+</Tool>
+
+<Tool name="ingest_status" core>
+  Checks on documents that are still being added.
+</Tool>
+
+## Built-in prompts
+
+Ready-made workflows you can pick in apps that support MCP prompts:
+
+| Prompt | What it does |
+|---|---|
+| **Answer with verified citations** | Answers a question using only verified passages, citing each claim |
+| **What changed between versions** | Explains the latest changes to a document and what else may need review |
+| **Audit for contradictions** | Reviews conflicts and sorts them into real problems, exceptions and false alarms |
+
+## Lighter tool set
+
+Tools marked **core** are the everyday set. If your agent has a small context window, you can give it
+only those. See [Settings](/docs/reference/settings#lighter-tool-set).

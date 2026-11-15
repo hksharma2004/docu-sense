@@ -1,0 +1,61 @@
+export const metadata = { title: "Tracking changes" }
+
+Documents change. DocuSense keeps every version, so your agent can tell you exactly what's different
+without reading both versions from start to finish.
+
+## Add the new version
+
+```bash
+docusense add mail-policy.md
+```
+
+If the file changed since last time, it's saved as the next version. The previous one is kept.
+
+## Ask what changed
+
+> What changed in the new version of the mail policy?
+
+Your agent gets just the differences:
+
+```text
+mail-policy v1 → v2 · 4 changed · 1 added
+
+§3.1 Line Length
+  − A message line MAY be up to 2000 octets
+  + A message line MUST NOT exceed 1000 octets
+
+§3.2 Recipients
+  − MUST NOT accept more than 50 recipients
+  + MUST accept at least 100 recipients
+
+§6 Transport Security (new)
+  + A relay server MUST offer STARTTLS
+```
+
+That answer cost **2,776 tokens**. Reading both versions would have cost **97,895**.
+
+## Other questions you can ask
+
+| Ask | You get |
+|---|---|
+| "Did any rules change between v1 and v2?" | Only rules whose wording, strength or numbers changed |
+| "When was the 15-minute retry rule introduced?" | The version it first appeared in, and what it said before |
+| "Which other documents reference the SMTP standard?" | Every document that cites it, so you know what to review |
+| "Compare the 2025 and 2026 handbooks." | Changes between any two versions, not just the latest two |
+
+Sections that were renumbered or moved are matched by their titles, so they show up as moved, not as
+deleted and re-added.
+
+## Built-in prompt
+
+In apps that support MCP prompts, choose **What changed between versions** and give it the document name.
+It lists the history, shows the important changes with old and new wording side by side, and lists other
+documents that may need review.
+
+## Version names
+
+By default versions are numbered v1, v2, v3. To use your own names:
+
+```bash
+docusense add handbook-2026.pdf --doc employee-handbook --label 2026
+```

@@ -1,0 +1,55 @@
+import { PixelScene } from "@/components/client"
+
+export const metadata = { title: "Introduction" }
+
+<PixelScene scene="alpine" seed={7} className="doc-banner">
+  <div className="hero-cmd"><span className="p">$</span> uv tool install <span className="c">docusense-mcp</span></div>
+</PixelScene>
+
+**DocuSense lets your AI agent read your documents the way you would.** Instead of pasting a whole
+50-page PDF into Claude or Cursor, your agent looks at the table of contents, opens the right section,
+and reads only the paragraph that answers. Every answer comes with a citation to the exact passage.
+
+It works with PDFs, Word files, web pages, Markdown and text. It runs on your computer, it's free, and
+nothing is uploaded anywhere.
+
+## What you get
+
+<Cards>
+  <Card title="Far fewer tokens" href="/docs/guides/savings">About 23x less context than pasting documents, so answers are faster and cheaper.</Card>
+  <Card title="Answers with sources" href="/docs/citations">Every quote links to the exact text it came from, and can be checked.</Card>
+  <Card title="Every version kept" href="/docs/tracking-changes">Add an updated file and ask what changed, without re-reading either version.</Card>
+  <Card title="Conflicts surfaced" href="/docs/contradictions">See where your documents disagree, with both sides quoted.</Card>
+</Cards>
+
+## How much it saves
+
+On the same set of questions:
+
+| | Context your agent reads |
+|---|---|
+| Pasting the documents | 160,179 tokens |
+| Typical retrieval (RAG) | 15,765 tokens |
+| **DocuSense** | **6,869 tokens** |
+
+For a single precise fact, that's 478 tokens instead of 9,090. You can see your own numbers any time with
+`docusense savings`.
+
+## Great for
+
+- Long specs, API references and design docs while coding
+- Policies, handbooks and contracts where you need exact wording
+- Documents that change, where you need to know what's different
+- Checking internal rules against an external standard
+
+If your documents are a few short files that already fit in your agent's context, you don't need
+DocuSense. It pays off on long documents, many documents, and documents your agent reads again and again.
+
+## Works with
+
+Claude Code, Claude Desktop, Cursor, and any other app that supports MCP (the standard way to give AI
+agents tools).
+
+<Callout type="tip" title="Get started">
+  [Install DocuSense](/docs/installation), then follow the [Quickstart](/docs/quickstart). It takes about a minute.
+</Callout>
