@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hksharma2004/docusense",
+  "title": "DocuSense",
+  "description": "Agents read PDFs and docs by section and claim: ~20x fewer tokens, hash-verified citations, diffs.",
+  "repository": {
+    "url": "https://github.com/hksharma2004/docu-sense",
+    "source": "github"
+  },
+  "websiteUrl": "https://docusense.xyz",
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "docusense-mcp",
+      "version": "0.1.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "serve-mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "DOCUSENSE_HOME",
+          "description": "Where DocuSense stores its index (default: ~/.docusense)",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -62,3 +62,28 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes
+
+  mcp-registry:
+    needs: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: server.json version matches tag
+        run: |
+          V=$(jq -r .version server.json)
+          test "v$V" = "$GITHUB_REF_NAME" || { echo "server.json $V != tag $GITHUB_REF_NAME"; exit 1; }
+      - name: wait for PyPI to serve the release
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "https://pypi.org/pypi/docusense-mcp/${GITHUB_REF_NAME#v}/json" >/dev/null && exit 0
+            sleep 10
+          done
+          exit 1
+      - name: install mcp-publisher
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+      - run: ./mcp-publisher login github-oidc
+      - run: ./mcp-publisher publish

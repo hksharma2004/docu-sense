@@ -40,9 +40,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4 sm:px-6">
             <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight" translate="no">
-              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2 22 20H2L12 2Z" fill="currentColor" />
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/mark.png" alt="" aria-hidden="true" className="h-[18px] w-auto dark:hidden" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/mark-dark.png" alt="" aria-hidden="true" className="hidden h-[18px] w-auto dark:block" />
               DocuSense
             </Link>
             <nav aria-label="Primary" className="flex items-center gap-1">

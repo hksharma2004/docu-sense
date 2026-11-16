@@ -1,6 +1,6 @@
 [project]
 name = "docusense-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server that lets AI agents read your PDFs and docs in sections, not wholesale: ~20x fewer tokens, hash-verified citations, version diffs"
 authors = [
     { name = "hksharma2004", email = "hksharma2004@users.noreply.github.com" }
@@ -37,7 +37,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hksharma2004/docu-sense"
+Homepage = "https://docusense.xyz"
+Source = "https://github.com/hksharma2004/docu-sense"
 Issues = "https://github.com/hksharma2004/docu-sense/issues"
 
 [project.optional-dependencies]
