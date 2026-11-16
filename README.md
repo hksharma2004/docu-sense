@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hksharma2004/docu-sense/main/docs/assets/docusense-wordmark-dark.png">
+    <img alt="DocuSense" src="https://raw.githubusercontent.com/hksharma2004/docu-sense/main/docs/assets/docusense-wordmark.png" height="56">
+  </picture>
+</p>
+
 # DocuSense
 
 **Stop pasting whole documents into your agent.**

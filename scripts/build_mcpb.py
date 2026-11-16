@@ -43,6 +43,8 @@ MANIFEST = {
     ),
     "author": {"name": "Harsh Kumar Sharma"},
     "license": "MIT",
+    "homepage": "https://docusense.xyz",
+    "repository": {"type": "git", "url": "https://github.com/hksharma2004/docu-sense"},
     "icon": "icon.png",
     "keywords": ["documents", "citations", "rag", "pdf", "versioning", "provenance"],
     "server": {
@@ -79,25 +81,8 @@ MANIFEST = {
 
 
 def make_icon(path: Path) -> None:
-    import pymupdf
-
-    doc = pymupdf.open()
-    page = doc.new_page(width=256, height=256)
-    shape = page.new_shape()
-    shape.draw_rect(pymupdf.Rect(0, 0, 256, 256), radius=0.18)
-    shape.finish(color=None, fill=(0.11, 0.16, 0.27))
-    shape.draw_rect(pymupdf.Rect(60, 44, 196, 212), radius=0.08)  # page
-    shape.finish(color=None, fill=(0.96, 0.97, 0.99))
-    for i, w in enumerate((96, 80, 96, 60)):  # text lines
-        y = 78 + i * 22
-        shape.draw_line((80, y), (80 + w, y))
-    shape.finish(color=(0.55, 0.6, 0.7), width=7, lineCap=1)
-    shape.draw_circle((180, 182), 38)  # verified badge
-    shape.finish(color=None, fill=(0.13, 0.65, 0.42))
-    shape.draw_polyline([(162, 182), (176, 196), (200, 168)])
-    shape.finish(color=(1, 1, 1), width=10, lineCap=1, lineJoin=1, closePath=False)
-    shape.commit()
-    page.get_pixmap(dpi=144).save(str(path))  # 512×512
+    """The [ds] brand mark (512×512), kept in scripts/assets/icon.png."""
+    shutil.copy2(ROOT / "scripts/assets/icon.png", path)
 
 
 def main() -> None:
