@@ -202,7 +202,7 @@ function SpanBlock({ span, active, base }: { span: DocSpan; active: boolean; bas
   );
 }
 
-/** Indented definition lists, column layouts & figures keep their line layout. */
+/** indented definition lists, column layouts and figures keep their line layout */
 function isStructured(text: string): boolean {
   const lines = text.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return /\S\s{3,}\S/.test(lines[0]?.trim() ?? "");
@@ -211,7 +211,7 @@ function isStructured(text: string): boolean {
   return lines.slice(1).some((l) => indent(l) >= base + 3) || lines.some((l) => /\S\s{3,}\S/.test(l.trim()));
 }
 
-/** Display-only reflow of fixed-width paragraphs. The stored evidence bytes are untouched. */
+/** display-only reflow of fixed-width paragraphs, stored evidence bytes untouched */
 function reflow(text: string): string {
   return text.split("\n").map((l) => l.trim()).join(" ");
 }

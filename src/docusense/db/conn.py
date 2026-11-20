@@ -1,12 +1,12 @@
-"""Database access for two backends behind one small interface.
+"""one small db interface over two backends.
 
-- SQLite (default, embedded, zero setup): DATABASE_URL unset or sqlite:///path.
-- Postgres + pgvector (team/hosted use): DATABASE_URL=postgresql://… (needs the `postgres` extra).
+- sqlite (default, embedded): DATABASE_URL unset or sqlite:///path
+- postgres + pgvector (team/hosted): postgresql://... (needs the `postgres` extra)
 
-Callers write Postgres-flavoured SQL with %s placeholders. For SQLite the wrapper rewrites
-placeholders, expands `= ANY(%s)` list parameters into `IN (…)`, stores JSON / text-array columns as
-JSON text (decoded on read via declared column types) and registers the few SQL functions the
-queries rely on. Anything not expressible that way branches on `db.dialect`.
+callers write postgres-style sql with %s placeholders. for sqlite we rewrite placeholders,
+expand `= ANY(%s)` into `IN (...)`, store json / text[] columns as json text (decoded on read
+from declared column types) and register the few sql functions the queries need.
+anything else branches on `db.dialect`.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from typing import Any, Iterator
 
 from docusense.config import get_settings
 
-MIN_SQLITE = (3, 38, 0)  # RETURNING (3.35), ->> JSON operator (3.38)
+MIN_SQLITE = (3, 38, 0)  # RETURNING (3.35), ->> json operator (3.38)
 
 
 def _sqlite_path(url: str) -> Path:
@@ -34,7 +34,7 @@ def is_sqlite(url: str) -> bool:
     return url.startswith("sqlite:")
 
 
-# ── SQLite type plumbing ─────────────────────────────────────────────────────
+# ── sqlite type plumbing ─────────────────────────────────────────────────────
 
 def _json_text(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
@@ -45,7 +45,7 @@ sqlite3.register_adapter(dict, _json_text)
 sqlite3.register_converter("JSONB", json.loads)
 sqlite3.register_converter("TEXTARRAY", json.loads)
 sqlite3.register_converter("TIMESTAMPTZ", lambda b: datetime.fromisoformat(b.decode()))
-try:  # numpy scalars sneak into parameters (scores, confidences)
+try:  # numpy scalars sneak into params (scores, confidences)
     import numpy as np
 
     sqlite3.register_adapter(np.float32, float)
@@ -59,7 +59,7 @@ _PARAM = re.compile(r"=\s*ANY\(\s*%s\s*\)|%s|%%")
 
 
 def _translate(sql: str, params: tuple | list | None) -> tuple[str, list]:
-    """Postgres-style SQL + params → SQLite SQL + flat params."""
+    """postgres-style sql + params -> sqlite sql + flat params"""
     params = list(params or ())
     out_params: list = []
     index = 0
@@ -105,7 +105,7 @@ def _dict_row(cursor: sqlite3.Cursor, row: tuple) -> dict:
 # ── unified connection ───────────────────────────────────────────────────────
 
 class Database:
-    """Thin wrapper exposing the subset of the psycopg connection API DocuSense uses."""
+    """thin wrapper over the subset of the psycopg api we use"""
 
     def __init__(self, raw: Any, dialect: str):
         self.raw = raw
@@ -130,7 +130,7 @@ class Database:
             cur.executemany(sql, rows)
 
     def json(self, value: Any) -> Any:
-        """Wrap a value bound for a JSONB column."""
+        """wrap a value bound for a jsonb column"""
         if self.dialect == "sqlite":
             return _json_text(value)
         from psycopg.types.json import Jsonb
@@ -208,7 +208,7 @@ def _connect_sqlite(path: Path) -> Database:
     raw.create_function("regexp_replace", -1, _regexp_replace, deterministic=True)
     raw.create_function("jsonb_array_length", 1, _json_array_length, deterministic=True)
     raw.create_function("topic_overlap", 2, _topic_overlap, deterministic=True)
-    raw.autocommit = False  # PEP 249 transactions, matching psycopg's default
+    raw.autocommit = False  # pep 249 transactions, same as psycopg's default
     return Database(raw, "sqlite")
 
 
@@ -233,7 +233,7 @@ def init_schema(db: Database) -> None:
 
 
 def reset_schema(db: Database) -> None:
-    """Drop everything and recreate. Dev only: this is the one way evidence gets removed."""
+    """drop everything and recreate. dev only, the one way evidence gets deleted"""
     if db.dialect == "sqlite":
         db.commit()
         db.raw.autocommit = True
@@ -251,7 +251,7 @@ def reset_schema(db: Database) -> None:
 
 
 class ConnectionPool:
-    """Per-request connections for the REST API. Postgres uses psycopg_pool; SQLite opens cheaply."""
+    """per-request connections for the rest api. postgres pools, sqlite opens cheap"""
 
     def __init__(self, url: str | None = None):
         self.url = url or get_settings().resolved_database_url

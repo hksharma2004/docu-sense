@@ -1,5 +1,5 @@
-// Procedural pixel-art landscapes, drawn at low resolution and scaled up with
-// `image-rendering: pixelated`. Every scene is seeded, so it's stable across renders.
+// procedural pixel-art landscapes, drawn small and scaled up with
+// `image-rendering: pixelated`. scenes are seeded, so they're stable across renders.
 
 type RGB = [number, number, number];
 

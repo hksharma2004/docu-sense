@@ -42,13 +42,13 @@ Source = "https://github.com/hksharma2004/docu-sense"
 Issues = "https://github.com/hksharma2004/docu-sense/issues"
 
 [project.optional-dependencies]
-# Postgres + pgvector backend (team / hosted). The default backend is embedded SQLite.
+# postgres + pgvector backend (team / hosted). default is embedded sqlite
 postgres = [
     "psycopg[binary,pool]>=3.2",
     "pgvector>=0.3",
 ]
 
-# Anthropic (Claude) as the optional LLM provider for extraction fallback / contradiction judging.
+# anthropic (claude) as the optional llm for extraction fallback / contradiction judging
 anthropic = ["anthropic>=1.0"]
 
 [project.scripts]

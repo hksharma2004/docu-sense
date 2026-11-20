@@ -1,12 +1,12 @@
-"""Pattern-based claim extraction: requirements, numeric facts and exclusions.
+"""pattern-based claim extraction: requirements, numeric facts, exclusions.
 
-Two styles, chosen per document version (see `detect_style`):
-- "bcp14": specs that use RFC 2119 / BCP 14 keywords. Only UPPERCASE MUST/SHALL/… are normative, as the
-  convention says; lowercase "must" is ordinary prose.
-- "prose": policies, contracts, handbooks. Lowercase modals and common legal/HR phrasings
-  ("is required to", "may not", "are prohibited from", "is entitled to") are normative.
+two styles, picked per version (see `detect_style`):
+- "bcp14": specs using rfc 2119 keywords. only uppercase MUST/SHALL/... are normative,
+  lowercase "must" is plain prose
+- "prose": policies, contracts, handbooks. lowercase modals and common legal/hr phrasing
+  ("is required to", "may not", "is entitled to") count as normative
 
-Pure functions over sentence text. Database writes live in extract/run.py.
+pure functions over sentence text. db writes live in extract/run.py.
 """
 
 import re
@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 from docusense.extract.sentences import flatten
 
-# Longest alternatives first so 'MUST NOT' wins over 'MUST'.
+# longest first so 'MUST NOT' beats 'MUST'
 _KEYWORD = re.compile(
     r"(?<![\"'\w])(MUST NOT|SHALL NOT|SHOULD NOT|NOT RECOMMENDED|MUST|SHALL|SHOULD|REQUIRED|"
     r"RECOMMENDED|MAY|OPTIONAL)(?![\"'\w])"
@@ -23,7 +23,7 @@ _CANONICAL_MODALITY = {
     "SHALL": "MUST", "REQUIRED": "MUST", "SHALL NOT": "MUST NOT",
     "RECOMMENDED": "SHOULD", "NOT RECOMMENDED": "SHOULD NOT", "OPTIONAL": "MAY",
 }
-# Prose modals, longest/most specific first. Each maps to a canonical BCP 14 modality.
+# prose modals, most specific first. each maps to a bcp 14 modality
 _PROSE_MODALS: list[tuple[str, str]] = [
     (r"(?:is|are) (?:strictly )?(?:prohibited|forbidden|barred) from", "MUST NOT"),
     (r"(?:is|are) not (?:permitted|allowed|authori[sz]ed) to", "MUST NOT"),
@@ -36,7 +36,7 @@ _PROSE_MODALS: list[tuple[str, str]] = [
 _PROSE_KEYWORD = re.compile(
     "|".join(f"(?P<m{i}>(?<![\\w'])(?:{pat})(?![\\w']))" for i, (pat, _) in enumerate(_PROSE_MODALS)), re.I
 )
-# 'may' that expresses possibility, not permission: "this may cause", "it may be".
+# 'may' as possibility, not permission: "this may cause", "it may be"
 _MAY_POSSIBILITY = re.compile(r"^\s*(?:be|cause|result|lead|vary|change|differ|affect|include|occur|take|apply|also be|not be)\b", re.I)
 
 _NUM = r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?"
@@ -74,10 +74,10 @@ _RFC_HEADER = re.compile(r"Request for Comments:\s*\d+|Internet Engineering Task
 
 
 def detect_style(texts: list[str]) -> str:
-    """'bcp14' when the document uses uppercase RFC 2119 keywords (or cites the convention), else 'prose'."""
+    """'bcp14' if the doc uses uppercase rfc 2119 keywords (or cites them), else 'prose'"""
     joined = "\n".join(texts)
     if _RFC_HEADER.search(joined[:20000]):
-        return "bcp14"  # IETF documents: lowercase modals are not normative by convention
+        return "bcp14"  # ietf docs: lowercase modals aren't normative
     hits = len(_BCP14_UPPER.findall(joined))
     return "bcp14" if hits >= 3 or (hits and _BOILERPLATE.search(joined)) else "prose"
 
@@ -92,11 +92,11 @@ class ClaimCandidate:
     value_num: float | None = None
     unit: str | None = None
     topic_terms: list[str] = field(default_factory=list)
-    needs_fallback: bool = False  # subject could not be determined deterministically
+    needs_fallback: bool = False  # subject not found deterministically
 
 
 def _stem(word: str) -> str:
-    """Light plural folding: policies→policy, minutes→minute, days→day, uris→uri (not 'ss'/'us'/'is')."""
+    """light plural folding: policies->policy, days->day, uris->uri (skips 'ss'/'us'/'is')"""
     word = word.lower()
     if len(word) > 4 and word.endswith("ies"):
         return word[:-3] + "y"
@@ -119,7 +119,7 @@ def normalize_terms(text: str) -> list[str]:
 
 
 def _subject(prefix: str) -> str | None:
-    """Noun phrase right before the keyword: drop leading clauses, keep the last few words."""
+    """noun phrase right before the keyword: drop leading clauses, keep the last few words"""
     prefix = re.sub(r"\[[^\]]*\]|\([^)]*\)", " ", prefix)       # citations, parentheticals
     prefix = re.sub(r"[•*•◦]", " ", prefix)           # bullets
     prefix = re.sub(r"\s+(?:is|are|be|is not|are not)\s*$", "", prefix.strip())  # 'PKCE is OPTIONAL'
@@ -154,7 +154,7 @@ def _value(num: re.Match) -> tuple[float, str]:
 
 
 class _Keyword:
-    """Uniform view over a BCP 14 or prose modal match."""
+    """one view over a bcp 14 or prose modal match"""
 
     def __init__(self, start: int, end: int, modality: str):
         self._start, self._end, self.modality = start, end, modality
@@ -194,7 +194,7 @@ def extract_claim(sentence: str, style: str = "bcp14") -> ClaimCandidate | None:
         modality = kw.modality
         subject = _subject(flat[:kw.start()])
         if style == "prose" and modality == "MAY" and subject is None:
-            kw = None  # bare 'may' without a clear actor is too often possibility
+            kw = None  # bare 'may' with no clear actor is usually possibility
     if kw:
         predicate = flat[kw.end():].strip(" .")
         claim_type = "exclusion" if modality in ("MUST NOT", "SHOULD NOT") else "requirement"

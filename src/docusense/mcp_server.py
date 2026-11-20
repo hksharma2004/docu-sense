@@ -1,9 +1,9 @@
-"""DocuSense MCP server. Fine-grained, citation-first document tools for AI agents.
+"""docusense mcp server. citation-first document tools for ai agents.
 
-Run:  docusense serve-mcp                 (stdio: Claude Desktop, Claude Code, Cursor, VS Code)
-      docusense serve-mcp --http          (Streamable HTTP on 127.0.0.1:8765/mcp)
+run:  docusense serve-mcp          (stdio)
+      docusense serve-mcp --http   (streamable http on 127.0.0.1:8765/mcp)
 
-DOCUSENSE_TOOLS=core exposes a smaller tool set for agents with tight context budgets.
+DOCUSENSE_TOOLS=core exposes a smaller tool set for tight context budgets.
 """
 
 import functools
@@ -44,28 +44,25 @@ _schema_lock = threading.Lock()
 
 
 def _ds() -> DocuSense:
-    """One connection per thread: the HTTP transport runs tool calls concurrently."""
+    """one connection per thread, http runs tool calls concurrently"""
     global _schema_ready
     ds = getattr(_local, "ds", None)
     if ds is None:
         conn = connect()
         with _schema_lock:
             if not _schema_ready:
-                init_schema(conn)  # idempotent; makes a fresh install usable immediately
+                init_schema(conn)  # idempotent, so a fresh install works right away
                 _schema_ready = True
-        conn.autocommit = True  # every call sees documents added since the server started
+        conn.autocommit = True  # each call sees docs added since startup
         ds = _local.ds = DocuSense(conn)
     return ds
 
 
 def tool(core: bool = False, annotations: ToolAnnotations | None = READ_ONLY):
-    """Register a tool (skipped when DOCUSENSE_TOOLS=core and the tool isn't core).
+    """register a tool (skipped when DOCUSENSE_TOOLS=core and it isn't core).
 
-    Expected failures (unknown document, bad argument, missing file) become clean tool errors the agent
-    can act on, instead of tracebacks.
-
-    Results go back as compact JSON text only (no pretty-printing, no duplicate structuredContent copy):
-    every byte here is a token in the agent's context. Each call is logged to the local savings ledger.
+    expected failures become clean tool errors instead of tracebacks. results go back as compact
+    json only, since every byte is a token in the agent's context. each call hits the savings ledger.
     """
     def decorator(fn):
         @functools.wraps(fn)
@@ -326,13 +323,13 @@ def main() -> None:
 
     import pymupdf
 
-    # stdout carries JSON-RPC: route MuPDF warnings (stdout by default) to stderr.
+    # stdout carries json-rpc, so send mupdf warnings to stderr
     pymupdf.set_messages(stream=sys.stderr)
     server.run()
 
 
 def http_app(host: str = "127.0.0.1", path: str = "/mcp"):
-    """Streamable HTTP ASGI app, with bearer-token auth when DOCUSENSE_HTTP_TOKEN is set."""
+    """streamable http asgi app, bearer auth when DOCUSENSE_HTTP_TOKEN is set"""
     app = server.streamable_http_app(streamable_http_path=path, host=host)
     token = get_settings().http_token
     if not token:

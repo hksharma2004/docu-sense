@@ -1,6 +1,6 @@
-"""Parser output shared by the PDF and Markdown paths.
+"""parser output shared by the pdf and markdown paths.
 
-All offsets are byte offsets into the UTF-8 encoded canonical text. Pages are 1-indexed.
+all offsets are byte offsets into utf-8 canonical text. pages are 1-indexed.
 """
 
 from bisect import bisect_right
@@ -41,7 +41,7 @@ class ParsedDoc:
 
 
 class TextBuilder:
-    """Builds canonical text line by line, tracking byte offsets as it goes."""
+    """builds canonical text line by line, tracking byte offsets"""
 
     def __init__(self) -> None:
         self.lines: list[str] = []

@@ -4,7 +4,7 @@ const MODES = [
   { value: "semantic", label: "Semantic" },
 ];
 
-/** Plain GET form: the URL is the state, Enter submits, Back/Forward & sharing just work. */
+/** plain GET form: the url is the state, so enter, back/forward and sharing just work */
 export function SearchForm({ q = "", mode = "hybrid", doc = "", autoFocus = false }: { q?: string; mode?: string; doc?: string; autoFocus?: boolean }) {
   return (
     <form action="/search" method="get" role="search" className="flex flex-col gap-3">

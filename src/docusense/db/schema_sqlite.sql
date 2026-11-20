@@ -1,6 +1,6 @@
--- DocuSense schema, SQLite dialect. Mirrors schema.sql (Postgres) at its current shape.
--- Declared types JSONB / TEXTARRAY / TIMESTAMPTZ drive Python-side converters (see db/conn.py).
--- Versions, sections and spans are append-only (triggers at the bottom).
+-- docusense schema, sqlite dialect. mirrors schema.sql (postgres) as it stands now.
+-- declared types JSONB / TEXTARRAY / TIMESTAMPTZ drive python-side converters (see db/conn.py).
+-- versions, sections and spans are append-only (triggers at the bottom).
 
 CREATE TABLE IF NOT EXISTS documents (
   id            TEXT PRIMARY KEY,
@@ -64,7 +64,7 @@ CREATE INDEX IF NOT EXISTS spans_version_idx ON spans(version_id);
 CREATE INDEX IF NOT EXISTS spans_section_idx ON spans(section_id);
 CREATE UNIQUE INDEX IF NOT EXISTS spans_unique_range ON spans(version_id, kind, start_byte, end_byte);
 
--- float32 little-endian vector bytes; searched with numpy (see index/embed.py).
+-- float32 little-endian vector bytes, searched with numpy (see index/embed.py).
 CREATE TABLE IF NOT EXISTS span_embeddings (
   span_id   INTEGER PRIMARY KEY REFERENCES spans(id),
   model     TEXT NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS conflicts (
   details     JSONB
 );
 
--- Append-only enforcement: evidence is never rewritten or removed.
+-- append-only: evidence is never rewritten or removed.
 CREATE TRIGGER IF NOT EXISTS versions_append_only_u BEFORE UPDATE ON versions
 BEGIN SELECT RAISE(ABORT, 'append-only table versions: UPDATE not allowed'); END;
 CREATE TRIGGER IF NOT EXISTS versions_append_only_d BEFORE DELETE ON versions

@@ -1,9 +1,9 @@
-"""Provenance verification: a span is trusted only if its bytes still hash to the stored SHA-256.
+"""provenance check: a span is trusted only if its bytes still hash to the stored sha-256.
 
-verify_span(deep=False): canonical-text blob → slice [start, end) → sha256 == stored hash,
-                         and the stored text equals the slice.
-verify_span(deep=True):  additionally re-parses the original source file and checks that the
-                         parser still produces the same canonical text (determinism check).
+verify_span(deep=False): canonical blob -> slice [start, end) -> sha256 == stored hash,
+                         and stored text == slice
+verify_span(deep=True):  also re-parses the original file and checks the parser still
+                         gives the same canonical text (determinism)
 """
 
 from collections import defaultdict
@@ -36,7 +36,7 @@ class Verifier:
         return self._text_cache[digest]
 
     def deep_check(self, version_id: str) -> dict:
-        """Re-run the parser on the stored source file and compare canonical-text hashes."""
+        """re-run the parser on the stored source and compare canonical-text hashes"""
         if version_id in self._deep_cache:
             return self._deep_cache[version_id]
         from docusense.ingest.pipeline import parse_source

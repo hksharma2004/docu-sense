@@ -1,4 +1,4 @@
-"""Integration: ingest two linked documents, extract, build BM25, query through the service layer."""
+"""integration: ingest two linked docs, extract, build bm25, query via the service layer"""
 
 import pytest
 
@@ -138,7 +138,7 @@ def test_budget_truncation(ds):
     assert out["truncated"] is True and len(out["sections"]) >= 1
 
 
-# ── week 3 tools (exercised on every backend) ──────────────────────────────────
+# ── version tools (run on every backend) ──────────────────────────────────
 
 def test_list_versions_and_diff(ds):
     versions = ds.list_versions("beta")["versions"]
@@ -184,7 +184,7 @@ def test_assemble_context_and_viewer_document(ds):
 
 
 def test_semantic_search(ds, conn, tmp_path, monkeypatch):
-    """Semantic + hybrid search with a deterministic fake embedder (no model download)."""
+    """semantic + hybrid search with a deterministic fake embedder (no model download)"""
     import hashlib
 
     import numpy as np

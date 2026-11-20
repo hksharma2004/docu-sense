@@ -1,12 +1,11 @@
-"""Budget-aware context assembly (synopsis Figure 2).
+"""budget-aware context assembly.
 
-For each requested span:
-  1. provenance verify   – a SHA-256 mismatch rejects the span (listed under `rejected`)
-  2. version check       – if its version is obsolete, attach the best-matching span of the latest
-                           version plus its similarity (a section/claim-level diff is one tool call away)
-  3. contradiction scan  – append claims from other documents that conflict with claims in the span
-  4. pack                – requested > newer version > conflict; greedy within the token budget,
-                           truncating at sentence boundaries when a block does not fit
+per requested span:
+  1. verify    sha-256 mismatch rejects the span (goes to `rejected`)
+  2. version   if obsolete, attach the closest span from the latest version + its similarity
+  3. conflict  append claims from other docs that conflict with this one
+  4. pack      requested > newer version > conflict, greedy within the token budget,
+               cut at sentence boundaries when a block doesn't fit
 """
 
 from docusense.extract.sentences import flatten, split_sentences

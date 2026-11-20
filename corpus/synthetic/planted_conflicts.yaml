@@ -1,13 +1,13 @@
-# Gold labels for contradiction detection (used by the week-4 benchmark).
-# Each entry: a synthetic statement and the RFC section it deliberately conflicts with.
-# Section numbers were checked against the ingested corpus.
+# gold labels for contradiction detection (used by the benchmark).
+# each entry: a synthetic statement and the rfc section it deliberately conflicts with.
+# section numbers checked against the ingested corpus.
 
 conflicts:
   - id: C1
     synthetic: {version: mail-policy@v1, section: "3.1", claim: "message line MAY be up to 2000 octets"}
     source: {version: smtp@rfc5321, section: "4.5.3.1.6", claim: "max text line length is 1000 octets"}
     kind: value_mismatch
-    resolved_in: mail-policy@v2   # v2 aligns with RFC 5321
+    resolved_in: mail-policy@v2   # v2 aligns with rfc 5321
   - id: C2
     synthetic: {version: mail-policy@v1, section: "3.2", claim: "MUST NOT accept more than 50 recipients"}
     source: {version: smtp@rfc5321, section: "4.5.3.1.8", claim: "MUST buffer at least 100 recipients"}

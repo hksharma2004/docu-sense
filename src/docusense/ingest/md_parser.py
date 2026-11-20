@@ -1,4 +1,4 @@
-"""Markdown → canonical text. The canonical text is the normalised file itself, so offsets map 1:1."""
+"""markdown -> canonical text. canonical text is the normalised file itself, so offsets map 1:1"""
 
 from markdown_it import MarkdownIt
 
@@ -40,7 +40,7 @@ def parse_markdown(data: bytes) -> ParsedDoc:
             depth = int(tok.tag[1])
             content = tokens[i + 1].content.strip()
             if depth == 1 and h1_count == 1:
-                title = content  # single H1 = document title, part of front matter
+                title = content  # single h1 = document title, part of front matter
                 continue
             start, end = span(*tok.map)
             hm = match_heading_text(content)

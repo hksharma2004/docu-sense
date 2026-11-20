@@ -1,15 +1,15 @@
-"""Score cached benchmark runs (PLAN.md §8.3).
+"""score cached benchmark runs.
 
     uv run python -m bench.score --model google/gemma-4-31b-it:free
 
-Metrics per config (same for every config, so the comparison is fair):
-  correct       every answer_keywords group matched (case-insensitive; each group lists alternatives)
-  cite_hit      at least one gold (version, section) was cited
-  cite_recall   share of gold citations that were cited
-  quotes_ok     share of quoted passages ("…", ≥ 15 chars) found verbatim (whitespace-insensitive) in a source
+metrics per config (same for all, so it's fair):
+  correct       every answer_keywords group matched (case-insensitive, groups list alternatives)
+  cite_hit      at least one gold (version, section) cited
+  cite_recall   share of gold citations cited
+  quotes_ok     share of quotes ("...", >= 15 chars) found verbatim (whitespace-insensitive) in a source
   tool calls, prompt+completion tokens, latency (means)
-Citations come from ds:// identifiers in the answer and from verbatim quotes, which are located in the
-canonical texts and mapped to the enclosing section. A quote found in several versions cites all of them.
+citations come from ds:// ids in the answer and from verbatim quotes, located in the canonical
+texts and mapped to their section. a quote found in several versions cites all of them.
 """
 
 import argparse
@@ -32,7 +32,7 @@ def _norm(s: str) -> str:
 
 @lru_cache
 def corpus() -> dict:
-    """version → (normalized text, normalized-char → original byte offset, section starts, section rows)."""
+    """version -> (normalized text, normalized-char -> byte offset, section starts, section rows)"""
     sections = json.loads((WORK / "sections.json").read_text())
     out = {}
     for path in sorted((WORK / "texts").glob("*.txt")):
@@ -55,7 +55,7 @@ def corpus() -> dict:
 
 
 def section_at(vid: str, byte: int) -> tuple[str | None, str]:
-    """Innermost section containing a byte offset → (number, title)."""
+    """innermost section containing a byte offset -> (number, title)"""
     best = None
     for start, end, number, title in corpus()[vid][2]:
         if start <= byte < max(end, start + 1) and (best is None or start >= best[0]):
@@ -64,7 +64,7 @@ def section_at(vid: str, byte: int) -> tuple[str | None, str]:
 
 
 def cited_locations(answer: str) -> tuple[set, int, int]:
-    """(set of (version, section-number-or-title), quotes found, quotes total)."""
+    """(set of (version, section number or title), quotes found, quotes total)"""
     cited: set[tuple[str, str]] = set()
     for vid, section, _, _ in DS_CITATION.findall(answer):
         cited.add((vid, section))

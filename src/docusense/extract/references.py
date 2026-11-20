@@ -1,4 +1,4 @@
-"""Cross-reference detection (pure functions). Resolution against the corpus lives in extract/run.py."""
+"""cross-reference detection (pure). resolution against the corpus lives in extract/run.py"""
 
 import re
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from docusense.extract.sentences import flatten
 _SEC = r"(?:\d+(?:\.\d+)*|[A-Z](?:\.\d+)*)(?![\w])"
 _SEC_WORD = r"(?:[Ss]ection|[Ss]ec\.|Appendix)"
 
-# Order matters: more specific patterns claim their text first.
+# order matters: specific patterns claim their text first
 _SECTION_OF_DOC = re.compile(
     rf"\b{_SEC_WORD}\s+(?P<sec>{_SEC})\s+of\s+(?:\[(?P<tag>[^\]\s]+)\]|RFC\s?(?P<rfc>\d+))"
 )
@@ -32,7 +32,7 @@ class RefMatch:
     relation: str  # section | cites | obsoletes | updates
     tag: str | None = None
     rfc: str | None = None
-    section: str | None = None  # target section number (None = whole document)
+    section: str | None = None  # target section number (none = whole doc)
 
     @property
     def internal(self) -> bool:
@@ -52,7 +52,7 @@ def parse_reference_entry(text: str) -> tuple[str | None, str | None]:
 
 
 def build_tag_map(entries: list[str]) -> dict[str, str | None]:
-    """Map citation tags to RFC numbers. Untagged entries extend the previous tag (BCP groups)."""
+    """map citation tags to rfc numbers. untagged entries extend the previous tag (bcp groups)"""
     tags: dict[str, str | None] = {}
     current = None
     for text in entries:

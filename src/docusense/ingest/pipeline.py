@@ -1,4 +1,4 @@
-"""Ingest one document version: parse → canonical text blob → sections + spans, in one transaction."""
+"""ingest one version: parse -> canonical text blob -> sections + spans, in one transaction"""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +13,7 @@ from docusense.ingest.sections import build_sections
 from docusense.store.blobs import BlobStore, sha256_hex
 
 
-# File suffix → stored format. Plain text goes through the Markdown parser (paragraphs, no headings).
+# file suffix -> stored format. plain text goes through the markdown parser (no headings)
 FORMAT_BY_SUFFIX = {"pdf": "pdf", "md": "md", "markdown": "md", "txt": "md",
                     "docx": "docx", "html": "html", "htm": "html"}
 
@@ -71,7 +71,7 @@ def ingest_version(
     existing = conn.execute(
         "SELECT id FROM versions WHERE source_sha256 = %s OR id = %s", (source_sha, version_id)
     ).fetchone()
-    conn.rollback()  # end the implicit read transaction so the block below is a real transaction
+    conn.rollback()  # close the implicit read txn so the block below is a real transaction
     if existing:
         return IngestResult(existing["id"], "skipped")
 

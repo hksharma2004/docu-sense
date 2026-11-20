@@ -1,7 +1,7 @@
-"""Bounded LLM fallback: only for requirement sentences whose subject the heuristics missed.
+"""bounded llm fallback, only for requirement sentences whose subject the heuristics missed.
 
-Off by default; the provider is configurable (docusense/llm.py). Every result records the model ID, a SHA-256 of the exact prompt, the method and
-a confidence, so LLM-derived claims stay auditable and distinguishable from deterministic ones.
+off by default, provider set in llm.py. each result records model id, sha-256 of the exact
+prompt, method and confidence, so llm-derived claims stay auditable and apart from rule-based ones.
 """
 
 from dataclasses import dataclass
@@ -38,7 +38,7 @@ class FallbackResult:
 
 
 class SubjectFallback:
-    """Budgeted LLM access (the same object also serves as the contradiction judge)."""
+    """budgeted llm access (also reused as the contradiction judge)"""
 
     def __init__(self, max_calls: int = MAX_CALLS_PER_VERSION, llm: LLM | None = None):
         self.llm = llm or LLM()

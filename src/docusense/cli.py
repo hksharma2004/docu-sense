@@ -1,7 +1,7 @@
-"""DocuSense command line.
+"""docusense cli.
 
-Everyday use:  `docusense add <files or folders>`, `docusense list`, `docusense serve-mcp`, `docusense info`.
-Corpus / dev:  `docusense ingest <manifest>`, `extract`, `index`, `conflicts`, `verify`, `stats`, `db init|reset`.
+everyday:    add, list, serve-mcp, info
+corpus/dev:  ingest, extract, index, conflicts, verify, stats, db init|reset
 """
 
 import json
@@ -345,7 +345,7 @@ def savings(
 
 
 def _server_command() -> list[str]:
-    """Absolute command for the MCP server: GUI clients (Claude Desktop, Cursor) don't inherit your shell PATH."""
+    """absolute mcp server command, gui clients (claude desktop, cursor) don't inherit your shell PATH"""
     import shutil
     import sys
 
@@ -420,7 +420,7 @@ if __name__ == "__main__":
 
 
 def main() -> None:
-    """Console entry point: expected errors print one line instead of a traceback."""
+    """console entry point: expected errors print one line, not a traceback"""
     import sys
 
     try:

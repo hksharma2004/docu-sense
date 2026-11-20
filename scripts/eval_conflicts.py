@@ -1,4 +1,4 @@
-"""Score stored conflicts against corpus/synthetic/planted_conflicts.yaml (recall + judged precision)."""
+"""score stored conflicts against corpus/synthetic/planted_conflicts.yaml (recall + judged precision)"""
 
 from pathlib import Path
 

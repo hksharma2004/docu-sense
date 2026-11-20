@@ -1,12 +1,10 @@
-"""Token savings ledger: what the agent read through DocuSense vs. what pasting the documents would cost.
+"""token savings ledger: what the agent read via docusense vs. pasting the docs.
 
-Every MCP tool call appends one line to $DOCUSENSE_HOME/savings.jsonl:
+each mcp tool call appends a line to $DOCUSENSE_HOME/savings.jsonl:
     {"ts", "session", "tool", "returned", "versions"}
-`returned` is the token estimate of the response the agent received; `versions` are the document versions
-that response drew from. The counterfactual for a session is pasting each touched version once (its full
-canonical text), so a document read by ten calls is still only counted once on the "paste" side.
-
-Tokens use the same chars/4 estimate everywhere, so the two sides are comparable. Nothing leaves the machine.
+`returned` is the token estimate of the response, `versions` the versions it drew from.
+the counterfactual is pasting each touched version once (full canonical text), so a doc read
+by ten calls counts once on the paste side. both sides use chars/4. nothing leaves the machine.
 """
 
 import json
@@ -34,7 +32,7 @@ def enabled() -> bool:
 
 
 def versions_in(payload: str) -> list[str]:
-    """Version ids a response cites (every span view carries a ds:// citation)."""
+    """version ids a response cites (every span view carries a ds:// citation)"""
     return sorted(set(_CITATION.findall(payload)))
 
 
@@ -53,7 +51,7 @@ def record(tool: str, payload: str) -> None:
 
 
 def summarize(version_tokens: dict[str, int], since: float | None = None) -> dict:
-    """Aggregate the ledger. `version_tokens` maps version id -> tokens of its full canonical text."""
+    """aggregate the ledger. `version_tokens` maps version id -> tokens of its full text"""
     sessions: dict[str, dict] = defaultdict(lambda: {"calls": 0, "returned": 0, "versions": set(), "tools": defaultdict(int)})
     path = ledger_path()
     if path.exists():
@@ -73,7 +71,7 @@ def summarize(version_tokens: dict[str, int], since: float | None = None) -> dic
     total = {"sessions": 0, "calls": 0, "returned": 0, "paste": 0, "tools": defaultdict(int)}
     for s in sessions.values():
         paste = sum(version_tokens.get(v, 0) for v in s["versions"])
-        if not paste:  # sessions that never touched document text (only list_documents etc.)
+        if not paste:  # sessions that never touched document text (only list_documents etc)
             continue
         total["sessions"] += 1
         total["calls"] += s["calls"]

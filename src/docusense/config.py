@@ -1,12 +1,11 @@
-"""Settings.
+"""settings.
 
-Where things live:
-- DOCUSENSE_HOME (default ~/.docusense) holds the local SQLite database, blobs and indexes.
-- Settings are DOCUSENSE_* variables, read from the environment, then ./.env, then $DOCUSENSE_HOME/.env.
-  They are namespaced so a project's own DATABASE_URL never leaks in when an MCP client launches us.
-- DOCUSENSE_DATABASE_URL selects the backend: unset or sqlite:///path → embedded SQLite (no server);
-  postgresql://… → Postgres + pgvector (install the `postgres` extra).
-- API keys also accept their conventional names (GROQ_API_KEY, OPENROUTER_API_KEY).
+- DOCUSENSE_HOME (default ~/.docusense) holds the sqlite db, blobs and indexes
+- vars are DOCUSENSE_*, read from env, then ./.env, then $DOCUSENSE_HOME/.env.
+  namespaced so a project's own DATABASE_URL never leaks in via an mcp client
+- DOCUSENSE_DATABASE_URL picks the backend: unset or sqlite:///path = embedded sqlite,
+  postgresql://... = postgres + pgvector (needs the `postgres` extra)
+- api keys also accept their usual names (GROQ_API_KEY, OPENROUTER_API_KEY)
 """
 
 import os
@@ -16,7 +15,7 @@ from pathlib import Path
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PARSER_VERSION = "docusense-parser/0.2.0"  # 0.2: multi-column PDFs, DOCX/HTML (single-column output unchanged)
+PARSER_VERSION = "docusense-parser/0.2.0"  # 0.2: multi-column pdfs, docx/html. single-column output unchanged
 
 
 def docusense_home() -> Path:
@@ -24,7 +23,7 @@ def docusense_home() -> Path:
 
 
 class Settings(BaseSettings):
-    # Later files win, so a project-local .env overrides the per-user one.
+    # later files win, so a project .env overrides the per-user one
     model_config = SettingsConfigDict(env_prefix="DOCUSENSE_", env_file=(docusense_home() / ".env", ".env"),
                                       extra="ignore", populate_by_name=True)
 
@@ -34,7 +33,7 @@ class Settings(BaseSettings):
     embed_model: str = "BAAI/bge-small-en-v1.5"
     groq_api_key: str = Field("", validation_alias=AliasChoices("DOCUSENSE_GROQ_API_KEY", "GROQ_API_KEY"))
     extract_model: str = "openai/gpt-oss-120b"
-    # LLM provider for the bounded fallbacks (see docusense/llm.py)
+    # llm provider for the bounded fallbacks (see llm.py)
     llm_provider: str = "auto"    # auto | groq | anthropic | openai | ollama | openai-compatible | none
     llm_model: str = ""
     llm_base_url: str = ""
@@ -47,10 +46,10 @@ class Settings(BaseSettings):
     agent_max_tool_calls: int = 15
     agent_max_tokens: int = 60000
 
-    # MCP server
-    tools: str = "all"            # all | core  (core = smaller tool list for tight agent contexts)
-    add_roots: str = ""           # comma-separated folders add_document may read (default: home dir)
-    http_token: str = ""          # bearer token required by `serve-mcp --http` when set
+    # mcp server
+    tools: str = "all"            # all | core (core = smaller tool list for tight contexts)
+    add_roots: str = ""           # comma-separated folders add_document may read (default: home)
+    http_token: str = ""          # bearer token for `serve-mcp --http`, if set
 
     @property
     def home(self) -> Path:

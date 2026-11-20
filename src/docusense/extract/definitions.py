@@ -1,4 +1,4 @@
-"""Defined-term mining (pure functions over paragraph text)."""
+"""defined-term mining, pure functions over paragraph text"""
 
 import re
 from dataclasses import dataclass
@@ -34,7 +34,7 @@ def _ok_term(term: str, max_words: int = 6) -> bool:
 
 
 def find_definitions(text: str, in_terminology_section: bool) -> list[DefinitionMatch]:
-    """Return defined terms in a paragraph. `text` is the raw span text (indentation preserved)."""
+    """defined terms in a paragraph. `text` is the raw span text, indentation kept"""
     flat = flatten(text)
     out: list[DefinitionMatch] = []
 
@@ -58,7 +58,7 @@ def find_definitions(text: str, in_terminology_section: bool) -> list[Definition
         if m and _ok_term(m.group("term"), 5):
             add(m.group("term"), "regex:colon")
 
-    # Term on its own line, definition indented more deeply below (RFC 6749 'Roles' style).
+    # term on its own line, definition indented below (rfc 6749 'roles' style)
     if len(lines) >= 2:
         first, rest = lines[0], lines[1:]
         indent = len(first) - len(first.lstrip())

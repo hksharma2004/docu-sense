@@ -1,8 +1,8 @@
-"""Download the RFC corpus and write corpus/manifest.yaml.
+"""download the rfc corpus and write corpus/manifest.yaml.
 
-Newer RFCs (v3 format, RFC 8650+) ship an official PDF, which is used as-is. Older RFCs are
-published only as paginated .txt, so they are rendered to a fixed-width PDF; the .txt URL and
-its SHA-256 are recorded in the manifest so the provenance chain stays intact.
+newer rfcs (v3, rfc 8650+) ship an official pdf, used as-is. older ones only ship as paginated
+.txt, so they get rendered to a fixed-width pdf; the .txt url and sha-256 go in the manifest to
+keep the provenance chain intact.
 """
 
 import sys
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "corpus"
 RAW = CORPUS / "raw"
 
-# (document id, title, RFC numbers ordered old → new; each newer RFC obsoletes the previous)
+# (doc id, title, rfc numbers old -> new; each newer rfc obsoletes the previous)
 RFC_DOCUMENTS = [
     ("smtp", "Simple Mail Transfer Protocol", [2821, 5321]),
     ("imf", "Internet Message Format", [2822, 5322]),
@@ -32,7 +32,7 @@ RFC_DOCUMENTS = [
     ("oauth-security-bcp", "Best Current Practice for OAuth 2.0 Security", [9700]),
 ]
 
-# (document id, title, [(label, file under corpus/synthetic)])
+# (doc id, title, [(label, file under corpus/synthetic)])
 SYNTHETIC_DOCUMENTS = [
     ("mail-policy", "Example Org Mail Server Policy",
      [("v1", "mail-policy-v1.md"), ("v2", "mail-policy-v2.md")]),

@@ -1,4 +1,4 @@
-"""DOCX / HTML → Markdown conversion, and end-to-end ingest + verify of both formats."""
+"""docx / html -> markdown, plus end-to-end ingest + verify for both"""
 
 import zipfile
 from io import BytesIO
@@ -95,7 +95,7 @@ def _run(text, size=24, bold=False):
 
 
 def test_docx_headings_from_direct_formatting():
-    """Many real documents fake headings with bold / bigger fonts instead of Heading styles."""
+    """real docs often fake headings with bold / bigger fonts instead of heading styles"""
     md = docx_to_markdown(make_docx(
         _run("Expense Policy", 48, True) + _run("1. Meals", 36, True)
         + _run("Employees must not claim more than $60 per day.")
