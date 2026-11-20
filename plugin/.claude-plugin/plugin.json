@@ -1,0 +1,14 @@
+{
+  "name": "docusense",
+  "displayName": "DocuSense",
+  "version": "0.1.2",
+  "description": "Read PDFs, Word files and docs by section and claim instead of pasting them whole: ~20x fewer tokens, hash-verified citations, version diffs and contradiction checks. Runs locally.",
+  "author": {
+    "name": "Harsh Kumar Sharma",
+    "url": "https://github.com/hksharma2004"
+  },
+  "homepage": "https://docusense.xyz",
+  "repository": "https://github.com/hksharma2004/docu-sense",
+  "license": "MIT",
+  "keywords": ["documents", "pdf", "citations", "rag", "versioning", "contradictions", "local"]
+}

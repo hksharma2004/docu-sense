@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "docusense": {
+      "command": "uvx",
+      "args": ["docusense-mcp==0.1.2", "serve-mcp"],
+      "env": {
+        "DOCUSENSE_LLM_PROVIDER": "none"
+      }
+    }
+  }
+}
