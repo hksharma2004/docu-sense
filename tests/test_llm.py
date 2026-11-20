@@ -1,4 +1,4 @@
-"""LLM provider selection and request shapes, with fake transports (no network, no spend)."""
+"""llm provider selection and request shapes, with fake transports (no network, no spend)"""
 
 import json
 from types import SimpleNamespace
@@ -16,7 +16,7 @@ SCHEMA = {"type": "object", "properties": {"subject": {"type": "string"}}, "requ
 
 @pytest.fixture
 def env(monkeypatch):
-    # Blank the plain names (overrides any .env), remove the prefixed aliases (they would shadow them).
+    # blank the plain names (beats any .env), drop the prefixed aliases (they'd shadow them)
     for key in ("GROQ_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DOCUSENSE_LLM_PROVIDER",
                 "DOCUSENSE_LLM_MODEL", "DOCUSENSE_LLM_BASE_URL"):
         monkeypatch.setenv(key, "")
@@ -39,7 +39,7 @@ def test_auto_selection(env):
     llm = LLM()
     assert (llm.provider, llm.model, llm.available) == ("anthropic", "claude-opus-5-5", True)
     env(GROQ_API_KEY="gsk-test")
-    assert LLM().provider == "groq"  # groq first: the historical default
+    assert LLM().provider == "groq"  # groq first, the historical default
 
 
 def test_openai_compatible_request(env):

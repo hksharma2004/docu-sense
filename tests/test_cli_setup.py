@@ -1,4 +1,4 @@
-"""`docusense setup` writes client configs without clobbering existing servers."""
+"""`docusense setup` writes client configs without clobbering other servers"""
 
 import json
 

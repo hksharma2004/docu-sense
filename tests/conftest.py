@@ -8,7 +8,7 @@ TEST_DB = "docusense_test"
 
 
 def _postgres_test_url() -> str:
-    """Postgres test database next to the configured one (skips when Postgres isn't configured/reachable)."""
+    """postgres test db next to the configured one (skips if postgres isn't set up or reachable)"""
     base = get_settings().database_url
     if not base or is_sqlite(base):
         pytest.skip("Postgres not configured (set DOCUSENSE_DATABASE_URL=postgresql://…)")

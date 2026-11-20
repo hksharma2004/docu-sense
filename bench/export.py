@@ -1,6 +1,6 @@
-"""Export every ingested version's canonical text (and its section map) for the baselines and scorer.
+"""export each version's canonical text and section map for the baselines and scorer.
 
-    uv run python -m bench.export        → bench/work/texts/<version_id>.txt, bench/work/sections.json
+    uv run python -m bench.export   -> bench/work/texts/<version_id>.txt, bench/work/sections.json
 """
 
 import json

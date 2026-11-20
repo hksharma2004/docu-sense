@@ -62,7 +62,7 @@ export function DocTitle() {
   );
 }
 
-/** Kept for MDX pages that want a custom header; most pages use DocTitle from the layout. */
+/** for mdx pages that want a custom header; most use DocTitle from the layout */
 export function DocHeader({ eyebrow, title, children }: { eyebrow?: string; title: string; children?: React.ReactNode }) {
   return (
     <header className="doc-head">

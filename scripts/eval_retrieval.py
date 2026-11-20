@@ -1,13 +1,13 @@
-"""Retrieval eval on real, non-RFC documents (no LLM, no API cost).
+"""retrieval eval on real non-rfc documents (no llm, no api cost).
 
-Paraphrased questions → does search return the passage that answers them?
-Reports hit@1, hit@5 and MRR for lexical, semantic and hybrid search.
+paraphrased questions -> does search return the passage that answers them?
+reports hit@1, hit@5 and mrr for lexical, semantic and hybrid.
 
-    uv run python scripts/eval_retrieval.py            # uses a throwaway DOCUSENSE_HOME
-    uv run python scripts/eval_retrieval.py --keep     # keep the eval store for inspection
+    uv run python scripts/eval_retrieval.py          # throwaway DOCUSENSE_HOME
+    uv run python scripts/eval_retrieval.py --keep   # keep the eval store
 
-Documents are downloaded once into ~/.cache/docusense-eval. They are public documents whose content can
-change upstream (the IRS revises Pub 463 yearly), so the SHA-256 seen is printed with the results.
+docs are downloaded once to ~/.cache/docusense-eval. they can change upstream (irs revises
+pub 463 yearly), so the sha-256 seen is printed with the results.
 """
 
 import argparse

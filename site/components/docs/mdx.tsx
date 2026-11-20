@@ -136,7 +136,7 @@ export function Card({ title, href, children }: { title: string; href: string; c
   return external ? <a className="dcard" href={href} target="_blank" rel="noopener">{body}</a> : <Link className="dcard" href={href}>{body}</Link>;
 }
 
-/** Header strip for one MCP tool in the reference. */
+/** header strip for one mcp tool in the reference */
 export function Tool({ name, core, writes, children }: { name: string; core?: boolean; writes?: boolean; children?: ReactNode }) {
   return (
     <div className="tool" id={name}>

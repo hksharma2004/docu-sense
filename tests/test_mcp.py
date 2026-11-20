@@ -1,4 +1,4 @@
-"""MCP surface: tool registration, clean errors, add_document jobs, resources and prompts."""
+"""mcp surface: tool registration, clean errors, add_document jobs, resources, prompts"""
 
 import asyncio
 import hashlib
@@ -26,7 +26,7 @@ def _fake_vec(text: str) -> np.ndarray:
 
 @pytest.fixture
 def mcp(tmp_path, monkeypatch):
-    """The MCP server pointed at a fresh SQLite home, with an offline fake embedder."""
+    """mcp server on a fresh sqlite home with an offline fake embedder"""
     from docusense import config, mcp_server
     from docusense.index import embed
 

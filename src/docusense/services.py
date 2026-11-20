@@ -1,8 +1,8 @@
-"""Query layer shared by the MCP server, the REST API and the benchmark harness.
+"""query layer shared by the mcp server, rest api and bench harness.
 
-Every function returns plain JSON-serialisable dicts. Evidence always carries a citation:
+everything returns plain json-serialisable dicts. evidence always carries a citation:
     ds://<version_id>#§<section>:b<start>-<end>
-plus the span's SHA-256, so any consumer can re-verify it.
+plus the span's sha-256, so any consumer can re-verify it.
 """
 
 import json
@@ -38,7 +38,7 @@ def _iso(value) -> str | None:
 
 
 def tokens(obj) -> int:
-    """Cheap token estimate (chars / 4) used for budget-aware responses."""
+    """cheap token estimate (chars / 4) for budget-aware responses"""
     return len(json.dumps(obj, ensure_ascii=False)) // 4
 
 
@@ -63,7 +63,7 @@ class DocuSense:
         return {r["document_id"]: r for r in rows}
 
     def version(self, doc: str, version: str | None = None) -> dict:
-        """Resolve 'smtp', 'smtp@rfc5321', 'rfc5321', 'RFC 5321' (+ optional version label)."""
+        """resolve 'smtp', 'smtp@rfc5321', 'rfc5321', 'RFC 5321' (+ optional version label)"""
         key = re.sub(r"\s+", "", doc.strip().lower())
         if version:
             vkey = re.sub(r"\s+", "", version.strip().lower())
@@ -118,7 +118,7 @@ class DocuSense:
         return out, False
 
     def _doc_filter(self, doc: str, version_col: str = "p.version_id") -> tuple[str, str]:
-        """A specific version ('smtp@rfc5321', 'rfc5321') filters by version; a document id by document."""
+        """a version id ('smtp@rfc5321', 'rfc5321') filters by version, a document id by document"""
         v = self.version(doc)
         key = doc.lower().replace(" ", "")
         if "@" in key or re.fullmatch(r"rfc\d+", key):
@@ -146,7 +146,7 @@ class DocuSense:
         return path[::-1]
 
     def _paragraph_for(self, span_id: int) -> dict:
-        """Map a sentence span to the paragraph span containing it (refs live on paragraphs)."""
+        """map a sentence span to its enclosing paragraph span (refs live on paragraphs)"""
         r = self.conn.execute("SELECT id, version_id, kind, start_byte, end_byte FROM spans WHERE id = %s", (span_id,)).fetchone()
         if r is None:
             raise NotFound(f"no span {span_id}")
@@ -395,7 +395,7 @@ class DocuSense:
     def verify_span(self, span_id: int, deep: bool = False) -> dict:
         return self.verifier.verify_span(span_id, deep=deep)
 
-    # ── 5. versions, contradictions, context (week 3) ────────────────────────
+    # ── 5. versions, contradictions, context ────────────────────────────────
 
     def list_versions(self, doc: str) -> dict:
         v = self.version(doc)

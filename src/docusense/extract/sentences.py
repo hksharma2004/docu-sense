@@ -1,4 +1,4 @@
-"""Deterministic sentence splitting with exact byte offsets."""
+"""deterministic sentence splitting with exact byte offsets"""
 
 import re
 from dataclasses import dataclass
@@ -23,10 +23,7 @@ def _byte_len(s: str) -> int:
 
 
 def split_sentences(text: str, base: int = 0) -> list[Sentence]:
-    """Split `text` (which starts at byte `base` of the canonical text) into sentences.
-
-    Leading/trailing whitespace is excluded from each sentence's byte range.
-    """
+    """split `text` (starts at byte `base` of the canonical text) into sentences, whitespace trimmed from each range"""
     cuts = [0]
     for m in _BOUNDARY.finditer(text):
         before = text[:m.start()].rstrip("\"')]")
@@ -49,5 +46,5 @@ def split_sentences(text: str, base: int = 0) -> list[Sentence]:
 
 
 def flatten(text: str) -> str:
-    """Collapse line breaks and indentation, for matching only (never for stored evidence)."""
+    """collapse line breaks and indentation. matching only, never stored evidence"""
     return " ".join(text.split())

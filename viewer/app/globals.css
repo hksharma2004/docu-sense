@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Geist palette (neutral). One font family: Geist Sans, used everywhere incl. code-like text. */
+/* geist palette (neutral). one font family, geist sans, everywhere incl. code-like text */
 :root {
   --bg: #ffffff;
   --bg-subtle: #fafafa;
@@ -60,7 +60,7 @@
   --color-border-strong: var(--border-strong);
   --color-focus: var(--focus);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-sans); /* single family: never fall back to a second font */
+  --font-mono: var(--font-geist-sans); /* single family, never fall back to a second font */
 }
 
 html {
@@ -102,14 +102,14 @@ label {
   color: var(--fg);
 }
 
-/* Evidence text: keeps the original line layout of tables, ABNF and figures. */
+/* evidence text keeps the original line layout of tables, abnf and figures */
 .evidence-pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
 
-/* Large documents: let the browser skip layout of off-screen sections. */
+/* large documents: let the browser skip layout of off-screen sections */
 .doc-section {
   content-visibility: auto;
   contain-intrinsic-size: auto 600px;
@@ -135,7 +135,7 @@ label {
   }
 }
 
-/* Native disclosure marker replaced by our own chevron. */
+/* native disclosure marker replaced by our own chevron */
 details > summary {
   list-style: none;
 }

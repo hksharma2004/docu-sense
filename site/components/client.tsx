@@ -6,7 +6,7 @@ import { paintScene, type SceneName } from "@/lib/pixel";
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** Calls `onEnter` once the element scrolls into view. */
+/** calls `onEnter` once the element scrolls into view */
 function useInView<T extends Element>(onEnter: () => void, threshold = 0.12) {
   const ref = useRef<T>(null);
   const cb = useRef(onEnter);
@@ -120,7 +120,7 @@ export function HeroPrompt() {
   );
 }
 
-/* ---------------- feature tabs (auto-rotating, AutoSend-style progress bar) ---------------- */
+/* ---------------- feature tabs (auto-rotating, with progress bar) ---------------- */
 
 export type FeatureItem = { k: string; title: string; desc: string; icon: ReactNode; mock: ReactNode };
 
@@ -211,7 +211,7 @@ export function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
       setV(Math.round(to * (1 - Math.pow(1 - p, 3))));
       if (p < 1) requestAnimationFrame(step);
     };
-    // First frame resets to 0, so if frames never run (background tab) the final value stays.
+    // first frame resets to 0, so if frames never run (background tab) the final value stays
     requestAnimationFrame(step);
   }, 0.6);
   return <div className="n" ref={ref}>{v.toLocaleString("en-US")}{suffix}</div>;

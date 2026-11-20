@@ -1,10 +1,9 @@
-"""Dense embeddings (fastembed, local ONNX).
+"""dense embeddings (fastembed, local onnx).
 
-Postgres stores them in pgvector (HNSW index). SQLite stores float32 bytes and searches with an
-exact numpy cosine scan, which is fast enough for local corpora (~100k spans).
+postgres keeps them in pgvector (hnsw). sqlite keeps float32 bytes and does an exact numpy
+cosine scan, fast enough for local corpora (~100k spans).
 
-Vectors are also cached on disk keyed by sha256(text), so re-ingesting (new span ids, same text)
-never recomputes them.
+vectors are also cached on disk by sha256(text), so re-ingesting never recomputes them.
 """
 
 import re
@@ -19,7 +18,7 @@ from docusense.index.bm25 import INDEX_KINDS
 from docusense.store.blobs import sha256_hex
 
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "  # bge retrieval instruction
-BATCH = 16  # small batches + length-sorted input keep padding (to the longest text in a batch) cheap
+BATCH = 16  # small, length-sorted batches keep padding cheap
 
 
 @lru_cache
@@ -73,7 +72,7 @@ def _from_db(value) -> np.ndarray:
 
 
 def build(conn: Database, progress=None) -> int:
-    """Embed every indexable span lacking an embedding for the current model. Returns spans written."""
+    """embed every indexable span missing an embedding for the current model. returns count written"""
     _register(conn)
     model = get_settings().embed_model
     cache = EmbeddingCache(model)
@@ -84,7 +83,7 @@ def build(conn: Database, progress=None) -> int:
         (model, list(INDEX_KINDS)),
     ).fetchall()
     keys = [sha256_hex(_clean(r["text"]).encode()) for r in rows]
-    # Length-sorted so each batch pads to a similar length; long spans don't slow down short ones.
+    # sort by length so each batch pads to a similar size
     missing = sorted({k: r for k, r in zip(keys, rows) if k not in cache.vectors}.items(),
                      key=lambda kv: (len(kv[1]["text"]), kv[0]))
     for i in range(0, len(missing), 256):
@@ -110,7 +109,7 @@ def build(conn: Database, progress=None) -> int:
 
 
 def seed_cache_from_db(conn: Database) -> int:
-    """Copy existing pgvector embeddings into the on-disk cache (before a reset)."""
+    """copy pgvector embeddings into the disk cache (before a reset)"""
     _register(conn)
     model = get_settings().embed_model
     cache = EmbeddingCache(model)
@@ -123,7 +122,7 @@ def seed_cache_from_db(conn: Database) -> int:
     return len(cache.vectors)
 
 
-# SQLite: (model, row count, max span id) -> (span ids, L2-normalised matrix)
+# sqlite: (model, row count, max span id) -> (span ids, l2-normalised matrix)
 _MATRIX: dict[tuple, tuple[np.ndarray, np.ndarray]] = {}
 
 

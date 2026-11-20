@@ -1,4 +1,4 @@
-// Single source of truth for the docs sidebar, prev/next links and search.
+// single source for the docs sidebar, prev/next links and search
 
 export type DocPage = { href: string; title: string; desc: string; keywords?: string };
 export type DocGroup = { title: string; pages: DocPage[] };

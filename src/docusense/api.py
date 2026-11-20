@@ -1,6 +1,6 @@
-"""REST API for the viewer. Thin wrapper over services.DocuSense.
+"""rest api for the viewer, a thin wrapper over services.DocuSense.
 
-Run:  uv run docusense serve-api   (http://localhost:8000, docs at /docs)
+run: uv run docusense serve-api   (localhost:8000, docs at /docs)
 """
 
 from contextlib import asynccontextmanager
@@ -42,7 +42,7 @@ def run(fn, *args, **kwargs):
         return fn(DocuSense(conn), *args, **kwargs)
 
 
-# Sync endpoints run in FastAPI's thread pool, so blocking DB calls don't stall the event loop.
+# sync endpoints run in fastapi's threadpool, so blocking db calls don't stall the loop
 
 @app.get("/api/health")
 def health():

@@ -1,4 +1,4 @@
-"""Baseline 2 — vector RAG MCP: one search(query) tool over ~512-token chunks, same embedding model."""
+"""baseline 2: vector rag mcp, one search(query) tool over ~512-token chunks, same embedding model"""
 
 import json
 from pathlib import Path

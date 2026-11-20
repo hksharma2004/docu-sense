@@ -1,5 +1,5 @@
-// Window contents for the feature tabs. Data comes from the repo's sample corpus
-// (corpus/synthetic/mail-policy-v1/v2.md vs RFC 5321), so every example is one DocuSense really finds.
+// window contents for the feature tabs. data comes from the sample corpus
+// (corpus/synthetic/mail-policy-v1/v2.md vs rfc 5321), so every example is a real finding.
 import type { ReactNode } from "react";
 
 const Call = ({ fn, children }: { fn: string; children?: ReactNode }) => (

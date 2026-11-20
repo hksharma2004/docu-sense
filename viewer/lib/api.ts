@@ -1,4 +1,4 @@
-// Server-side client for the DocuSense REST API (uv run docusense serve-api).
+// server-side client for the docusense rest api (uv run docusense serve-api)
 
 export const API_URL = process.env.DOCUSENSE_API_URL ?? "http://127.0.0.1:8000";
 

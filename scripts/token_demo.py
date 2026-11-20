@@ -1,14 +1,14 @@
-"""How much text does the model have to read to answer? DocuSense vs the usual alternatives.
+"""how much text does the model read to answer? docusense vs the usual options.
 
-    uv run python -m bench.export            # once: canonical texts for the baselines
+    uv run python -m bench.export          # once: canonical texts for the baselines
     uv run python scripts/token_demo.py
 
-Scenario: a compliance check — "Does Example Org's mail policy conflict with the SMTP standard?"
-and two lookups. For each, it measures the context an agent must load:
-  paste docs   – the whole relevant documents in the prompt (what people do in a chat window)
-  vector RAG   – top-5 ~512-token chunks per query, 2 queries (a typical RAG tool)
-  DocuSense    – the actual tool calls an agent makes (outputs measured, not guessed)
-Tokens are estimated as characters / 4 for every column, so the comparison is like-for-like.
+scenario: a compliance check ("Does Example Org's mail policy conflict with the SMTP standard?")
+plus two lookups. for each, measure the context an agent must load:
+  paste docs   whole relevant docs in the prompt
+  vector rag   top-5 ~512-token chunks per query, 2 queries
+  docusense    the real tool calls an agent makes (measured, not guessed)
+tokens = chars / 4 everywhere, so it's like-for-like.
 """
 
 import json
