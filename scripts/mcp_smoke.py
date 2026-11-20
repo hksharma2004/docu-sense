@@ -1,6 +1,6 @@
-"""End-to-end check over the real MCP stdio protocol (week-2 exit check).
+"""end-to-end check over the real mcp stdio protocol.
 
-Launches `docusense serve-mcp` as a subprocess and replays the tool path an agent would take for:
+launches `docusense serve-mcp` and replays the tool path an agent would take for:
   "What does RFC 6750 say about the URI syntax it references?"
 """
 

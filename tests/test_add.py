@@ -1,4 +1,4 @@
-"""`docusense add`: manifest-free ingestion with automatic versioning."""
+"""`docusense add`: manifest-free ingest with automatic versioning"""
 
 import pytest
 

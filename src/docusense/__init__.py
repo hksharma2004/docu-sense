@@ -1,1 +1,1 @@
-"""DocuSense: a verifiable and version-native document layer for AI agents."""
+"""docusense: verifiable, versioned document layer for ai agents"""

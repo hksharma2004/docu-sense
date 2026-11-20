@@ -1,9 +1,8 @@
-"""Background ingestion for the MCP server.
+"""background ingestion for the mcp server.
 
-Adding a document re-runs extraction, contradiction detection and indexing, and the first run
-downloads the embedding model. That can outlast an MCP client's tool timeout, so `add_document`
-queues a job here and waits only briefly; agents poll `ingest_status` for the rest.
-Jobs run one at a time (single worker) so writers never contend.
+an add re-runs extraction, conflicts and indexing, and the first run downloads the embedding
+model. that can outlast a client's tool timeout, so `add_document` queues a job here and waits
+briefly; agents poll `ingest_status` for the rest. one worker, so writers never contend.
 """
 
 import threading
@@ -42,7 +41,7 @@ def allowed_roots() -> list[Path]:
 
 
 def check_allowed(path: Path) -> Path:
-    """Agents may only add files under the configured roots (default: the user's home directory)."""
+    """agents can only add files under the configured roots (default: home dir)"""
     resolved = path.expanduser().resolve()
     roots = allowed_roots()
     if not any(resolved == r or r in resolved.parents for r in roots):

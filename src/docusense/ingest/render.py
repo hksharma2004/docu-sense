@@ -1,7 +1,7 @@
-"""Render a paginated RFC .txt into a fixed-width PDF, one RFC page per PDF page.
+"""render a paginated rfc .txt into a fixed-width pdf, one rfc page per pdf page.
 
-Older RFCs are published only as .txt; this reproduces the same layout that datatracker
-serves as PDF. Output is byte-for-byte deterministic (fixed metadata, no random file ID).
+older rfcs only ship as .txt; this matches the layout datatracker serves as pdf.
+output is byte-for-byte deterministic (fixed metadata, no random file id).
 """
 
 import pymupdf

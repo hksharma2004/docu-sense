@@ -1,4 +1,4 @@
-"""Heading detection and section-tree construction."""
+"""heading detection and section-tree building"""
 
 import re
 from dataclasses import dataclass
@@ -27,11 +27,11 @@ class HeadingMatch:
     number: str | None
     title: str
     level: int
-    inline_body: bool = False  # body text continues on the heading line (RFC 2119 style)
+    inline_body: bool = False  # body text continues on the heading line (rfc 2119 style)
 
 
 def match_heading_text(text: str) -> HeadingMatch | None:
-    """Pure text rule: does this line read like an RFC-style heading?"""
+    """pure text rule: does this line look like an rfc-style heading?"""
     t = text.strip()
     if not t or len(t) > 100 or _DOT_LEADER.search(t):
         return None
@@ -52,10 +52,10 @@ def match_heading_text(text: str) -> HeadingMatch | None:
 
 
 def build_sections(doc: ParsedDoc) -> list[dict]:
-    """Turn headings into a section tree. Returns dicts in document order.
+    """turn headings into a section tree, in document order.
 
-    Each section covers [heading start, start of next heading at the same or higher level),
-    trimmed of trailing whitespace. Content before the first heading is a level-0 front matter.
+    each section spans [heading start, next heading at same or higher level), trailing
+    whitespace trimmed. text before the first heading is level-0 front matter.
     """
     data = doc.data
     headings: list[Heading] = list(doc.headings)

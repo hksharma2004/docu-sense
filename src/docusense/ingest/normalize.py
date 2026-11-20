@@ -1,4 +1,4 @@
-"""Deterministic text normalisation. Any change here must bump PARSER_VERSION."""
+"""deterministic text normalisation. any change here must bump PARSER_VERSION"""
 
 import re
 import unicodedata

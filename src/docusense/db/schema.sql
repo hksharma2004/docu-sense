@@ -1,4 +1,4 @@
--- DocuSense schema. Versions, sections and spans are append-only.
+-- docusense schema. versions, sections and spans are append-only.
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS documents (
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS spans (
 CREATE INDEX IF NOT EXISTS spans_version_idx ON spans(version_id);
 CREATE INDEX IF NOT EXISTS spans_section_idx ON spans(section_id);
 
--- Filled in week 2. Kept apart from spans so spans stay strictly append-only.
+-- kept apart from spans so spans stay strictly append-only.
 CREATE TABLE IF NOT EXISTS span_embeddings (
   span_id   BIGINT PRIMARY KEY REFERENCES spans(id),
   model     TEXT NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS conflicts (
   detected_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Week 2 additions (idempotent so `db init` upgrades an existing database).
+-- later additions (idempotent so `db init` upgrades an existing db).
 ALTER TABLE claims ADD COLUMN IF NOT EXISTS predicate TEXT;
 ALTER TABLE claims ADD COLUMN IF NOT EXISTS topic_terms TEXT[];
 ALTER TABLE refs ADD COLUMN IF NOT EXISTS target_version TEXT;
@@ -121,12 +121,12 @@ ALTER TABLE refs ADD COLUMN IF NOT EXISTS version_id TEXT REFERENCES versions(id
 ALTER TABLE refs ADD COLUMN IF NOT EXISTS relation TEXT;  -- section | cites | obsoletes | updates
 ALTER TABLE definitions ADD COLUMN IF NOT EXISTS section_id BIGINT REFERENCES sections(id);
 
--- Week 3 additions.
+-- more additions.
 ALTER TABLE conflicts ADD COLUMN IF NOT EXISTS method TEXT;
 ALTER TABLE conflicts ADD COLUMN IF NOT EXISTS confidence REAL;
 ALTER TABLE conflicts ADD COLUMN IF NOT EXISTS details JSONB;
 
--- Sentence spans are derived deterministically, so re-extraction must not duplicate them.
+-- sentence spans are deterministic, so re-extraction must not duplicate them.
 CREATE UNIQUE INDEX IF NOT EXISTS spans_unique_range ON spans(version_id, kind, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS refs_version_idx ON refs(version_id);
 CREATE INDEX IF NOT EXISTS refs_span_idx ON refs(span_id);
@@ -136,12 +136,12 @@ CREATE INDEX IF NOT EXISTS claims_subject_idx ON claims(subject_key);
 CREATE INDEX IF NOT EXISTS claims_version_idx ON claims(version_id);
 CREATE INDEX IF NOT EXISTS claims_topic_idx ON claims USING gin(topic_terms);
 
--- Portable helper (SQLite registers the same function in Python).
+-- portable helper (sqlite registers the same function in python).
 CREATE OR REPLACE FUNCTION topic_overlap(a TEXT[], b TEXT[]) RETURNS INT LANGUAGE sql IMMUTABLE AS $$
   SELECT cardinality(ARRAY(SELECT unnest(a) INTERSECT SELECT unnest(b)))
 $$;
 
--- Append-only enforcement: evidence is never rewritten or removed.
+-- append-only: evidence is never rewritten or removed.
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION 'append-only table %: % not allowed', TG_TABLE_NAME, TG_OP;

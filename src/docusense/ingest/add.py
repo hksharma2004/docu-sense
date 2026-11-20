@@ -1,8 +1,8 @@
-"""Add user documents without a manifest.
+"""add user documents without a manifest.
 
-Each file becomes a logical document (id derived from the file name unless given). Adding a file
-whose bytes differ from what is stored for that document appends a new version (v1, v2, …), so
-diff / blame / contradictions work on ordinary files that change over time. Identical bytes are a no-op.
+each file becomes a document (id from the file name unless given). changed bytes append a
+new version (v1, v2, ...), so diff / blame / contradictions work on plain files that change
+over time. identical bytes are a no-op.
 """
 
 import re
@@ -22,7 +22,7 @@ def slugify(name: str) -> str:
 
 
 def collect_files(paths: list[Path], recursive: bool = True) -> list[Path]:
-    """Expand directories into supported files (sorted, hidden files skipped)."""
+    """expand folders into supported files (sorted, hidden files skipped)"""
     out: list[Path] = []
     for p in paths:
         if p.is_dir():
@@ -83,9 +83,9 @@ def add_file(conn: Database, path: Path, doc: str | None = None, title: str | No
 
 
 def refresh_derived(conn: Database, index: bool = True, progress=None) -> dict:
-    """Re-run extraction, contradiction detection and indexing after documents were added.
+    """re-run extraction, contradiction detection and indexing after an add.
 
-    Extraction runs over every version so references *into* the new document get resolved too.
+    extraction runs over every version so references *into* the new doc resolve too.
     """
     from docusense.extract.run import extract_all
     from docusense.versions.conflicts import detect

@@ -1,10 +1,10 @@
-"""Run the benchmark: every question × every config, same model, same budget (PLAN.md §8).
+"""run the benchmark: every question x every config, same model, same budget.
 
     uv run python -m bench.agent_runner --model google/gemma-4-31b-it:free --configs docusense,fs,vector --limit 3
 
-Each config is an MCP server spoken to over stdio; its tools are offered to an OpenAI-compatible chat model
-(OpenRouter or Groq). Results are cached per (model, config, question) in bench/results/cache/, so rate
-limits never force a full re-run: run again and it continues where it stopped.
+each config is an mcp server over stdio; its tools go to an openai-compatible chat model
+(openrouter or groq). results are cached per (model, config, question) in bench/results/cache/,
+so rate limits never force a full re-run, it just resumes.
 """
 
 import argparse

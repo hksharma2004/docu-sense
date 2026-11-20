@@ -165,7 +165,7 @@ def test_two_column_reading_order_and_alternating_footers():
     doc = parse_pdf(_two_column_pdf())
     text = doc.text
     first_page = text.encode()[: doc.page_starts[1]].decode()
-    # Every left-column sentence comes before any right-column sentence on the page.
+    # every left-column sentence comes before any right-column one
     assert first_page.rindex("Left column") < first_page.index("Right column")
     assert "Travel Guide (2026)" not in text  # alternating, chapter-specific footers stripped
     for p, word in enumerate(("alpha", "bravo", "charlie")):  # templated body lines are kept

@@ -7,7 +7,7 @@ const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const display = Red_Hat_Display({ subsets: ["latin"], style: ["normal", "italic"], weight: ["600", "700", "800"], variable: "--font-display" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
-// Absolute URLs for share images. Set NEXT_PUBLIC_SITE_URL to the deployed address.
+// absolute urls for share images. set NEXT_PUBLIC_SITE_URL to the deployed address
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://docusense.xyz";
 
 export const metadata: Metadata = {

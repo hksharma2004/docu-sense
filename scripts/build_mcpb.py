@@ -1,10 +1,10 @@
-"""Build dist/docusense.mcpb — a one-click Claude Desktop extension (MCP Bundle, server type "uv").
+"""build dist/docusense.mcpb, a one-click claude desktop extension (mcp bundle, server type "uv").
 
-    uv run python scripts/build_mcpb.py            # stage, validate and pack with the official mcpb CLI
+    uv run python scripts/build_mcpb.py    # stage, validate and pack with the mcpb cli
 
-The bundle carries only tracked source (src/, pyproject.toml, uv.lock, README, LICENSE) — never .env, the
-store, the corpus or the viewer. On first launch the host runs `uv run`, which installs dependencies from
-uv.lock into the bundle folder (a minute or two: PyMuPDF, ONNX runtime); later launches are instant.
+the bundle holds only tracked source (src/, pyproject.toml, uv.lock, readme, license), never .env,
+the store, the corpus or the viewer. on first launch the host runs `uv run`, which installs deps
+from uv.lock (a minute or two); later launches are instant.
 """
 
 import json
@@ -81,7 +81,7 @@ MANIFEST = {
 
 
 def make_icon(path: Path) -> None:
-    """The [ds] brand mark (512×512), kept in scripts/assets/icon.png."""
+    """the [ds] brand mark (512x512), kept in scripts/assets/icon.png"""
     shutil.copy2(ROOT / "scripts/assets/icon.png", path)
 
 

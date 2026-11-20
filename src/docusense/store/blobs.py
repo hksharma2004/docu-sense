@@ -1,4 +1,4 @@
-"""Content-addressed blob store: store/blobs/sha256/<2 hex>/<62 hex>."""
+"""content-addressed blob store: store/blobs/sha256/<2 hex>/<62 hex>"""
 
 import hashlib
 import os
@@ -29,7 +29,7 @@ class BlobStore:
         return digest
 
     def get(self, digest: str) -> bytes:
-        """Return raw bytes. No integrity check here: verification is the caller's job."""
+        """raw bytes. no integrity check here, verifying is the caller's job"""
         return self.path_for(digest).read_bytes()
 
     def exists(self, digest: str) -> bool:

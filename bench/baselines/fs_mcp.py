@@ -1,4 +1,4 @@
-"""Baseline 1 — raw filesystem MCP: list_files, grep, read_file over the canonical .txt files."""
+"""baseline 1: raw filesystem mcp (list_files, grep, read_file over the canonical .txt files)"""
 
 import re
 from pathlib import Path

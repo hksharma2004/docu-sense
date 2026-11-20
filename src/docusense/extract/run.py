@@ -1,7 +1,7 @@
-"""Run deterministic extraction for a version and persist refs, definitions and claims.
+"""run deterministic extraction for a version and save refs, definitions and claims.
 
-Extraction output is derived data: re-running it replaces the version's refs/definitions/claims.
-Sentence spans it creates are evidence and append-only (deduplicated by byte range).
+extraction output is derived: re-running replaces the version's refs/definitions/claims.
+sentence spans it creates are evidence, append-only, deduped by byte range.
 """
 
 import re
@@ -135,7 +135,7 @@ def extract_version(
             if sp["kind"] == "paragraph":
                 _extract_claims(conn, sp, version_id, stats, fallback, stats.style)
 
-        # Subsections of a terminology section define their own title (RFC 5321 §2.3.x style).
+        # subsections of a terminology section define their own title (rfc 5321 §2.3.x)
         for s in conn.execute(
             """SELECT c.id, c.title, p.title AS parent_title FROM sections c
                JOIN sections p ON p.id = c.parent_id WHERE c.version_id = %s""", (version_id,)

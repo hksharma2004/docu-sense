@@ -1,4 +1,4 @@
-"""Version intelligence: section-, claim- and reference-level diffs between two versions."""
+"""version diffs at section, claim and reference level"""
 
 from difflib import SequenceMatcher
 
@@ -39,7 +39,7 @@ def _sections(conn: Database, version_id: str) -> list[dict]:
 
 
 def _align(old: list[dict], new: list[dict]) -> list[tuple[dict | None, dict | None]]:
-    """Greedy best-first alignment on title similarity, boosted when numbers agree."""
+    """greedy best-first alignment on title similarity, boosted when numbers match"""
     candidates = []
     for o in old:
         for n in new:

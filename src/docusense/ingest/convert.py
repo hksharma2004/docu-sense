@@ -1,7 +1,7 @@
-"""DOCX and HTML → Markdown, deterministically and with the standard library only.
+"""docx and html -> markdown, deterministic, stdlib only.
 
-The Markdown becomes the version's canonical text (span offsets point into it), and `verify --deep`
-re-runs this conversion on the stored original, so the output must depend only on the input bytes.
+the markdown becomes the canonical text (span offsets point into it) and `verify --deep`
+re-runs this on the stored original, so output must depend only on input bytes.
 """
 
 import re
@@ -30,7 +30,7 @@ def _table_md(rows: list[list[str]]) -> list[str]:
     return out
 
 
-# ── DOCX ─────────────────────────────────────────────────────────────────────
+# ── docx ─────────────────────────────────────────────────────────────────────
 
 def _docx_text(el: ET.Element) -> str:
     parts = []
@@ -63,7 +63,7 @@ def docx_to_markdown(data: bytes) -> str:
     if body is None:
         return ""
 
-    # Pass 1: collect paragraphs/tables with the formatting signals needed to spot headings.
+    # pass 1: collect paragraphs/tables plus the formatting hints used to spot headings
     items: list[dict] = []
     size_chars: Counter = Counter()
     for child in body:
@@ -91,7 +91,7 @@ def docx_to_markdown(data: bytes) -> str:
     body_size = size_chars.most_common(1)[0][0] if size_chars else None
 
     def formatted_heading(it: dict) -> bool:
-        """Direct-formatting heading: short, no sentence end, bold or clearly larger than body text."""
+        """direct-formatting heading: short, no sentence end, bold or clearly bigger than body"""
         t = it["text"]
         if it["list"] or it["style"] or len(t) > 120 or t.endswith((".", ";", ",")) or len(t.split()) > 14:
             return False
@@ -102,7 +102,7 @@ def docx_to_markdown(data: bytes) -> str:
     candidates = [it for it in items if it["kind"] == "p" and not styled and formatted_heading(it)]
     heading_sizes = sorted({it["size"] or 0 for it in candidates}, reverse=True)
 
-    # Title: an explicit Title style, or a leading formatted heading in the single largest size.
+    # title: an explicit title style, or a leading heading in the single largest size
     first_p = next((it for it in items if it["kind"] == "p"), None)
     title_item = next((it for it in items if it["kind"] == "p" and it["style"] == "title"), None)
     if title_item is None and first_p in candidates and heading_sizes and (first_p["size"] or 0) == heading_sizes[0] \
@@ -111,7 +111,7 @@ def docx_to_markdown(data: bytes) -> str:
         heading_sizes = heading_sizes[1:]
     shift = 1 if title_item is not None else 0
 
-    # Pass 2: emit Markdown.
+    # pass 2: emit markdown
     blocks: list[str] = []
     for it in items:
         if it["kind"] == "table":
@@ -149,7 +149,7 @@ def _on(el: ET.Element | None) -> bool:
 
 
 def _run_format(p: ET.Element) -> tuple[bool, Counter]:
-    """(all text runs bold, Counter of half-point font size → characters)."""
+    """(all runs bold, Counter of half-point size -> chars)"""
     all_bold, any_text, sizes = True, False, Counter()
     for r in p.iter(_W + "r"):
         text = "".join(t.text or "" for t in r.iter(_W + "t")).strip()
@@ -165,7 +165,7 @@ def _run_format(p: ET.Element) -> tuple[bool, Counter]:
     return any_text and all_bold, sizes
 
 
-# ── HTML ─────────────────────────────────────────────────────────────────────
+# ── html ─────────────────────────────────────────────────────────────────────
 
 _SKIP = {"script", "style", "noscript", "template", "svg", "nav", "footer", "head", "form", "button", "iframe"}
 _BLOCK = {"p", "div", "section", "article", "main", "aside", "header", "blockquote", "figure", "figcaption",

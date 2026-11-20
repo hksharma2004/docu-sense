@@ -1,4 +1,4 @@
-"""Embedded BM25 index over paragraph/table spans (bm25s, persisted under store/index/bm25)."""
+"""embedded bm25 index over paragraph/table spans (bm25s, kept under store/index/bm25)"""
 
 import json
 from pathlib import Path
@@ -35,7 +35,7 @@ def build(conn: Database) -> int:
 
 
 def index_stamp(path: Path | None = None) -> float | None:
-    """mtime of the index's id list; changes whenever `build` rewrites the index."""
+    """mtime of the index id list, changes whenever `build` rewrites it"""
     ids = (path or index_dir()) / "span_ids.json"
     return ids.stat().st_mtime_ns if ids.exists() else None
 

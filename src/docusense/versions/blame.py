@@ -1,4 +1,4 @@
-"""Span blame: which version first introduced a piece of text, and how it evolved."""
+"""span blame: which version first introduced some text, and how it changed"""
 
 from difflib import SequenceMatcher
 

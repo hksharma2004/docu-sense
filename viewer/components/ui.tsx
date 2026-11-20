@@ -40,7 +40,7 @@ const STATUS: Record<string, { tone: Tone; label: string; mark: string }> = {
   absent: { tone: "gray", label: "Absent", mark: "∅" },
 };
 
-/** Status is never conveyed by color alone: every badge has a symbol & a text label. */
+/** status is never color-only: every badge has a symbol and a text label */
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS[status] ?? { tone: "gray" as Tone, label: status, mark: "·" };
   return (
@@ -149,7 +149,7 @@ export function ErrorState({ error }: { error: unknown }) {
   );
 }
 
-/** Runs an async data loader inside a server component & renders ErrorState on failure. */
+/** runs an async loader in a server component, renders ErrorState on failure */
 export async function load<T>(fn: () => Promise<T>): Promise<{ data: T; error: null } | { data: null; error: unknown }> {
   try {
     return { data: await fn(), error: null };

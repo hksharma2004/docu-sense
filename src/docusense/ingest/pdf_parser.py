@@ -1,14 +1,13 @@
-"""PDF → canonical text, using PyMuPDF layout information.
+"""pdf -> canonical text, using pymupdf layout info.
 
-Two layouts are handled:
-  mono   – fixed-width pages (RFC .txt rendered to PDF): headings are numbered lines at column 0.
-  styled – proportional fonts (xml2rfc v3, papers, reports): headings are bold or larger lines, inline
-           bold/links arrive as separate spans.
+two layouts:
+  mono    fixed-width pages (rfc .txt rendered to pdf). headings are numbered lines at column 0
+  styled  proportional fonts (xml2rfc v3, papers, reports). headings are bold or larger lines,
+          inline bold/links come as separate spans
 
-Multi-column pages (newsletters, government publications, papers) are read column by column: text
-blocks are grouped into vertical bands, and full-width blocks (titles, wide tables) split the page into
-horizontal segments. Single-column pages take exactly the original whole-page path, so canonical text
-for previously ingested single-column documents is unchanged.
+multi-column pages are read column by column: blocks are grouped into vertical bands, and
+full-width blocks (titles, wide tables) split the page into horizontal segments. single-column
+pages take the original whole-page path, so their canonical text is unchanged.
 """
 
 import re
@@ -21,10 +20,10 @@ from docusense.ingest.model import Block, Heading, ParsedDoc, TextBuilder
 from docusense.ingest.normalize import normalize_line
 from docusense.ingest.sections import HeadingMatch, match_heading_text
 
-BASELINE_TOLERANCE = 2.0  # points; spans closer than this share a visual line
-EDGE_LINES = 2            # lines at top/bottom of a page checked for running headers/footers
+BASELINE_TOLERANCE = 2.0  # points. spans closer than this share a line
+EDGE_LINES = 2            # lines at page top/bottom checked for running headers/footers
 MONO_CHAR_WIDTH = 0.6     # em width of a fixed-width glyph
-MARGIN = 0.07             # top/bottom fraction of the page where fuzzy running lines may sit
+MARGIN = 0.07             # top/bottom page fraction where fuzzy running lines may sit
 
 
 @dataclass
@@ -38,7 +37,7 @@ class RawLine:
     mono: bool
     indent: int = 0
     chars: int = 0
-    region_start: bool = False  # first line of a new column / segment (reading order jumps)
+    region_start: bool = False  # first line of a new column/segment (reading order jumps)
     rel_y: float = 0.5          # baseline as a fraction of page height
 
 
@@ -61,8 +60,9 @@ def _block_spans(block: dict) -> list[dict]:
 
 
 def _regions(page: pymupdf.Page) -> list[list[dict]]:
-    """Spans grouped into reading-order regions: one region for single-column pages, else one per
-    column band within each horizontal segment (segments are separated by full-width blocks)."""
+    """spans grouped into reading-order regions: one for single-column pages, else one per column
+    band within each horizontal segment (segments split by full-width blocks)
+    """
     blocks = [b for b in page.get_text("dict")["blocks"] if b.get("type") == 0]
     blocks = [(b, sp) for b in blocks if (sp := _block_spans(b))]
     everything = [s for _, sp in blocks for s in sp]
@@ -70,8 +70,8 @@ def _regions(page: pymupdf.Page) -> list[list[dict]]:
     if not blocks or width <= 0:
         return [everything]
 
-    # Column bands: narrow blocks clustered by left edge (column paragraphs share x0; stray table cells
-    # rarely reach 200 characters). Bands that overlap horizontally are merged (indented lists, quotes).
+    # column bands: narrow blocks clustered by left edge (column paragraphs share x0, stray
+    # table cells rarely hit 200 chars). horizontally overlapping bands merge (lists, quotes)
     narrow = [(b, sp) for b, sp in blocks if b["bbox"][2] - b["bbox"][0] < 0.48 * width]
     clusters: list[dict] = []
     for b, sp in sorted(narrow, key=lambda item: item[0]["bbox"][0]):
@@ -84,7 +84,7 @@ def _regions(page: pymupdf.Page) -> list[list[dict]]:
             clusters.append({"x0": x0, "edges": [(x1, n)], "chars": n})
 
     def right_edge(edges: list[tuple[float, int]]) -> float:
-        """Character-weighted median right edge: table rows sharing the column's left edge can't stretch it."""
+        """char-weighted median right edge, so table rows sharing the left edge can't stretch it"""
         total, acc = sum(n for _, n in edges), 0
         for x1, n in sorted(edges):
             acc += n
@@ -102,7 +102,7 @@ def _regions(page: pymupdf.Page) -> list[list[dict]]:
         else:
             real.append([c["x0"], x1])
     if len(real) < 2:
-        return [everything]  # single column: original behaviour
+        return [everything]  # single column: original path
 
     def band_of(b: dict) -> int | None:
         hits = [i for i, band in enumerate(real) if b["bbox"][0] < band[1] and b["bbox"][2] > band[0]]
@@ -172,18 +172,18 @@ def _region_lines(spans: list[dict], pno: int) -> list[RawLine]:
 
 
 def _strip_running_lines(pages: list[list[RawLine]]) -> list[list[RawLine]]:
-    """Drop headers/footers: short edge lines that recur (digit-masked, fuzzily) on many pages.
+    """drop headers/footers: short edge lines that recur (digit-masked, fuzzy) on many pages.
 
-    Exact repeats on half the pages catch RFC-style headers. Fuzzy repeats (≥ 75% of the shorter line's tokens shared) on
-    80% of the pages of one parity catch book layouts whose footers alternate sides or embed the
-    chapter name ("4 Chapter 1 Travel Publication 463 (2025)").
+    exact repeats on half the pages catch rfc-style headers. fuzzy repeats (>= 75% of the shorter
+    line's tokens shared) on 80% of one parity's pages catch book layouts whose footers alternate
+    sides or embed the chapter name ("4 Chapter 1 Travel Publication 463 (2025)").
     """
 
     def key(line: RawLine) -> str:
         return re.sub(r"\d+", "#", " ".join(line.text.split()))
 
     def edge_lines(lines: list[RawLine]) -> list[RawLine]:
-        # Geometric edges (top/bottom baselines): in column layouts a footer may sit inside a column.
+        # geometric edges (top/bottom baselines): in column layouts a footer can sit inside a column
         by_y = sorted(lines, key=lambda l: l.y)
         return by_y[:EDGE_LINES] + by_y[-EDGE_LINES:]
 
@@ -195,8 +195,8 @@ def _strip_running_lines(pages: list[list[RawLine]]) -> list[list[RawLine]]:
     running = {k for k, c in counts.items() if c >= threshold}
 
     if len(pages) >= 6:
-        # Only lines with ≥ 3 tokens: short ones ("#", "1 Introduction") match too easily.
-        # Fuzzy matching is limited to the page margins, so templated body lines are never dropped.
+        # only lines with >= 3 tokens; short ones ("#", "1 Introduction") match too easily
+        # fuzzy matching only in the margins, so templated body lines are never dropped
         margin = {key(l) for edges in edges_by_page for l in edges if l.rel_y < MARGIN or l.rel_y > 1 - MARGIN}
         tokens = {k: t for k in counts if k in margin and len(k) <= 100 and len(t := frozenset(k.lower().split())) >= 3}
         for parity in (0, 1):
@@ -233,7 +233,7 @@ def parse_pdf(data: bytes) -> ParsedDoc:
         size_chars[l.size] += l.chars
     body_size = size_chars.most_common(1)[0][0]
 
-    # Indentation (in characters) is kept only for fixed-width lines: it carries table/ABNF layout.
+    # indentation (in chars) kept only for fixed-width lines, it carries table/abnf layout
     def first_glyph_x(l: RawLine) -> float:
         return l.x0 + (len(l.text) - len(l.text.lstrip())) * l.size * MONO_CHAR_WIDTH
 
@@ -250,7 +250,7 @@ def parse_pdf(data: bytes) -> ParsedDoc:
         for a, b in zip(lines, lines[1:])
         if 0.5 * body_size < b.y - a.y < 3 * body_size
     ]
-    # Line pitch = a low percentile of baseline gaps: robust even when blank lines are frequent.
+    # line pitch = low percentile of baseline gaps, robust to frequent blank lines
     pitch = sorted(deltas)[len(deltas) // 5] if deltas else body_size * 1.2
 
     title = None

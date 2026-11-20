@@ -1,11 +1,11 @@
-"""Contradiction surfacing across documents. Both claims are always kept; nothing is auto-resolved.
+"""contradiction surfacing across documents. both claims are kept, nothing is auto-resolved.
 
-Stage 1 (deterministic, recall-oriented): a candidate pair comes from two different documents,
-shares rare topic terms (IDF-weighted overlap), and either
-  - has the same unit but a different number   -> value_mismatch
-  - has opposing BCP 14 modalities             -> modality_mismatch
-Stage 2 (optional, bounded LLM judge, precision-oriented): Groq labels each candidate. The verdict
-is stored next to the candidate; rejected candidates stay in the table, marked, never deleted.
+stage 1 (rules, recall-first): a candidate pair comes from two different docs, shares rare
+topic terms (idf-weighted overlap), and either
+  - same unit, different number   -> value_mismatch
+  - opposing bcp 14 modalities    -> modality_mismatch
+stage 2 (optional llm judge, precision-first): labels each candidate. the verdict sits next to
+the candidate; rejected ones stay in the table, marked, never deleted.
 """
 
 import json
@@ -20,7 +20,7 @@ from docusense.extract.sentences import flatten
 TIME_SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400}
 MIN_SHARED_TERMS = 2
 MIN_SCORE = 0.35          # IDF-weighted |A∩B| / min(|A|, |B|)
-MAX_POSTING = 400         # skip terms shared by too many claims to be discriminative
+MAX_POSTING = 400         # skip terms shared by too many claims to discriminate
 POSITIVE = {"MUST", "SHOULD"}
 NEGATIVE = {"MUST NOT", "SHOULD NOT"}
 RULE_METHOD = "rule/0.2"
@@ -109,10 +109,10 @@ contradict. Answer with JSON only:
 
 
 def detect(conn: Database, llm_judge: bool = False, max_judge_calls: int = 300) -> dict:
-    """Recompute the conflicts table. Returns counts."""
+    """recompute the conflicts table. returns counts"""
     candidates = find_candidates(conn)
     latest = {r["id"] for r in conn.execute(LATEST_VERSIONS_SQL)}
-    # Judge budget order: contradictions between current versions first, then by score.
+    # judge budget goes to current-version conflicts first, then by score
     candidates.sort(key=lambda c: (not (c["a"]["version_id"] in latest and c["b"]["version_id"] in latest),
                                    -c["score"]))
     judge = None

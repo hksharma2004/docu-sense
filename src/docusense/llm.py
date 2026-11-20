@@ -1,13 +1,12 @@
-"""Pluggable LLM provider for the bounded fallbacks (claim subjects, contradiction judging).
+"""pluggable llm provider for the bounded fallbacks (claim subjects, contradiction judging).
 
-The LLM is never on the critical path: everything works without one. When configured, every call
-returns the model that actually answered plus a SHA-256 of the exact prompt, so LLM-derived data stays
-auditable.
+never on the critical path, everything works without one. each call returns the model that
+answered plus a sha-256 of the exact prompt, so llm-derived data stays auditable.
 
-Providers (DOCUSENSE_LLM_PROVIDER, default "auto" = first one with a key: groq → anthropic → openai):
-  groq               OpenAI-compatible API, GROQ_API_KEY, model DOCUSENSE_EXTRACT_MODEL (default openai/gpt-oss-120b)
-  anthropic          Claude via the official SDK (`pip install 'docusense-mcp[anthropic]'`), ANTHROPIC_API_KEY
-                     (or any credential the SDK resolves), model DOCUSENSE_LLM_MODEL (default claude-opus-5-5)
+providers (DOCUSENSE_LLM_PROVIDER, default "auto" = first with a key: groq -> anthropic -> openai):
+  groq               openai-compatible, GROQ_API_KEY, model DOCUSENSE_EXTRACT_MODEL (default openai/gpt-oss-120b)
+  anthropic          official sdk (`pip install 'docusense-mcp[anthropic]'`), ANTHROPIC_API_KEY,
+                     model DOCUSENSE_LLM_MODEL (default claude-opus-5-5)
   openai             OPENAI_API_KEY, model DOCUSENSE_LLM_MODEL (required)
   ollama             local, DOCUSENSE_LLM_BASE_URL (default http://localhost:11434/v1), model required
   openai-compatible  any /chat/completions endpoint: DOCUSENSE_LLM_BASE_URL, DOCUSENSE_LLM_API_KEY, model required
@@ -41,7 +40,7 @@ class LLMResult:
 
 
 class LLM:
-    """`complete_json(prompt, schema)` → parsed JSON object, or None on any failure (never raises)."""
+    """`complete_json(prompt, schema)` -> parsed json, or None on any failure (never raises)"""
 
     def __init__(self, provider: str | None = None, model: str | None = None):
         s = get_settings()
@@ -97,7 +96,7 @@ class LLM:
                 data, model_id = self._call_anthropic(prompt, schema)
             else:
                 data, model_id = self._call_openai_compatible(prompt)
-        except Exception as e:  # network, auth, refusal, malformed JSON: the fallback simply doesn't apply
+        except Exception as e:  # network, auth, refusal, bad json: the fallback just doesn't apply
             self.last_error = f"{type(e).__name__}: {e}"
             return None
         if not isinstance(data, dict):
@@ -108,9 +107,9 @@ class LLM:
         response = self._anthropic.beta.messages.create(
             model=self.model,
             max_tokens=16000,
-            # Short extraction task: low effort. Structured outputs guarantee schema-valid JSON.
+            # short extraction task: low effort. structured outputs guarantee valid json
             output_config={"effort": "low", "format": {"type": "json_schema", "schema": schema}},
-            # On a safety decline, re-run on Anthropic's recommended fallback model server-side.
+            # on a safety decline, retry on anthropic's fallback model server-side
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
             messages=[{"role": "user", "content": prompt}],

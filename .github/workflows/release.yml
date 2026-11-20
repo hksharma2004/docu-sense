@@ -1,9 +1,9 @@
 name: Release
 
-# Push a tag like v0.2.0 (matching pyproject.toml's version) to publish to PyPI and attach the
-# wheel + Claude Desktop bundle (.mcpb) to a GitHub release.
+# push a tag like v0.2.0 (matching pyproject.toml) to publish to pypi and attach the
+# wheel + claude desktop bundle (.mcpb) to a github release.
 #
-# One-time setup on pypi.org: Account → Publishing → add a pending trusted publisher
+# one-time setup on pypi.org: account → publishing → add a pending trusted publisher
 #   project: docusense-mcp · owner/repo: this repo · workflow: release.yml · environment: pypi
 
 on:
