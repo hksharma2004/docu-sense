@@ -3,7 +3,8 @@
 verify_span(deep=False): canonical blob -> slice [start, end) -> sha256 == stored hash,
                          and stored text == slice
 verify_span(deep=True):  also re-parses the original file and checks the parser still
-                         gives the same canonical text (determinism)
+                         gives the same canonical text (determinism). skipped for versions
+                         whose source was removed by compaction (versions/compact.py)
 """
 
 from collections import defaultdict
@@ -50,7 +51,13 @@ class Verifier:
         try:
             source = self.store.get(v["source_sha256"])
         except FileNotFoundError:
-            result["error"] = "source blob missing"
+            compacted = self.conn.execute(
+                "SELECT 1 FROM compactions WHERE version_id = %s", (version_id,)
+            ).fetchone()
+            if compacted:
+                result["skipped"] = "source file removed by compaction; canonical text still verified"
+            else:
+                result["error"] = "source blob missing"
         else:
             result["source_intact"] = sha256_hex(source) == v["source_sha256"]
             if result["source_intact"]:
@@ -84,7 +91,7 @@ class Verifier:
         if deep:
             check = self.deep_check(row["version_id"])
             result["deep"] = check
-            result["verified"] = result["verified"] and check["reparse_match"]
+            result["verified"] = result["verified"] and (check["reparse_match"] or "skipped" in check)
         return result
 
     def verify_span(self, span_id: int, deep: bool = False) -> dict:

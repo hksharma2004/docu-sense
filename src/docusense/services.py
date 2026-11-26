@@ -16,6 +16,7 @@ from docusense.extract.definitions import normalize_term
 from docusense.extract.references import build_tag_map, detect_references
 from docusense.extract.run import _corpus_maps, _resolve
 from docusense.provenance import Verifier
+from docusense.versions.compact import compaction_of
 
 CANONICAL_MODALITY = {
     "SHALL": "MUST", "REQUIRED": "MUST", "SHALL NOT": "MUST NOT",
@@ -387,6 +388,9 @@ class DocuSense:
                            "sha256": r["sha256"], "text_sha256": v["text_sha256"], "source_sha256": v["source_sha256"],
                            **{k: meta[k] for k in meta if meta[k] is not None}},
         })
+        compaction = compaction_of(self.conn, r["version_id"])
+        if compaction:
+            view["compaction"] = compaction
         if verify:
             check = self.verifier.verify_span(span_id)
             view["verified"] = check["verified"]
@@ -419,6 +423,7 @@ class DocuSense:
                 "source_sha256": r["source_sha256"], "text_sha256": r["text_sha256"],
                 "parser_version": r["parser_version"], "ingested_at": _iso(r["ingested_at"]),
                 "origin": r["origin"],
+                **({"compaction": c} if (c := compaction_of(self.conn, r["id"])) else {}),
                 "declares": [f"{x['relation']} RFC {x['target_rfc']}" for x in relations if x["version_id"] == r["id"]],
             })
         return {"document": v["document_id"], "append_only": True, "versions": out}

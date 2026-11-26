@@ -97,4 +97,9 @@ def refresh_derived(conn: Database, index: bool = True, progress=None) -> dict:
 
         stats["bm25_spans"] = bm25.build(conn)
         stats["embedded"] = embed.build(conn, progress=progress)
+    from docusense.versions.compact import auto_compact
+
+    compacted = auto_compact(conn)
+    if compacted and compacted.versions:
+        stats["compacted"] = len(compacted.versions)
     return stats

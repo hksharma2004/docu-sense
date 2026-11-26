@@ -1,6 +1,6 @@
 """docusense cli.
 
-everyday:    add, list, serve-mcp, info
+everyday:    add, list, serve-mcp, info, du, compact
 corpus/dev:  ingest, extract, index, conflicts, verify, stats, db init|reset
 """
 
@@ -307,6 +307,84 @@ def stats() -> None:
         table.add_row(r["id"], r["format"], str(r["seq"]), str(r["pages"]), str(r["sections"]),
                       str(r["spans"]), str(r["refs"]), str(r["defs"]), str(r["claims"]))
     console.print(table)
+
+
+def _size(n: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+    return str(n)
+
+
+@app.command()
+def du(doc: str | None = typer.Option(None, "--doc", help="Only this document.")) -> None:
+    """Disk used per document version: original file, canonical text, embeddings."""
+    from docusense.versions.compact import versions_usage
+
+    with connect() as conn:
+        init_schema(conn)
+        rows = versions_usage(conn, doc=doc)
+    if not rows:
+        console.print("no documents yet")
+        return
+    table = Table("version", "source", "text", "embeddings", "state")
+    totals = {"source_bytes": 0, "text_bytes": 0, "embedding_bytes": 0}
+    for r in rows:
+        for k in totals:
+            totals[k] += r[k]
+        state = ("latest" if r["is_latest"] else
+                 f"[cyan]{r['compaction']['level']}[/]" if r["compaction"] else "[dim]compactable[/]")
+        table.add_row(r["version_id"], _size(r["source_bytes"]), _size(r["text_bytes"]),
+                      _size(r["embedding_bytes"]), state)
+    console.print(table)
+    console.print(f"total: {_size(sum(totals.values()))} "
+                  f"(source {_size(totals['source_bytes'])}, text {_size(totals['text_bytes'])}, "
+                  f"embeddings {_size(totals['embedding_bytes'])})")
+    reclaimable = sum(r["source_bytes"] + r["embedding_bytes"] for r in rows if not r["is_latest"] and not r["compaction"])
+    if reclaimable:
+        console.print(f"[dim]up to {_size(reclaimable)} reclaimable from old versions: "
+                      "docusense compact --keep-last N --older-than 90d[/]")
+
+
+@app.command()
+def compact(
+    keep_last: int | None = typer.Option(None, "--keep-last", help="Keep the newest N versions of each document untouched."),
+    older_than: str | None = typer.Option(None, "--older-than", help="Only versions added before this long ago, e.g. 90d, 12w, 6m, 1y."),
+    doc: str | None = typer.Option(None, "--doc", help="Only this document."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be freed, change nothing."),
+    yes: bool = typer.Option(False, "--yes", help="Skip confirmation."),
+) -> None:
+    """Free disk from old versions. Removes their original file and embeddings; citations still verify.
+
+    With both options, a version must match both. The latest version of a document is never touched.
+    """
+    from docusense.versions.compact import Policy, compact as run, parse_days
+
+    try:
+        policy = Policy(keep_last=keep_last, older_than_days=parse_days(older_than) if older_than else None)
+    except ValueError as e:
+        console.print(f"[red]{e}[/]")
+        raise typer.Exit(2)
+    with connect() as conn:
+        init_schema(conn)
+        plan = run(conn, policy, doc=doc, dry_run=True)
+        if not plan.versions:
+            console.print("nothing to compact")
+            return
+        table = Table("version", "frees")
+        for v in plan.versions:
+            table.add_row(v["version_id"], _size(v["bytes_freed"]))
+        console.print(table)
+        console.print(f"{len(plan.versions)} version(s), {_size(plan.bytes_freed)}. Their original files and embeddings "
+                      "are deleted; text, citations and verification stay. Not reversible "
+                      "(re-adding the original file does not restore it).")
+        if dry_run:
+            return
+        if not yes:
+            typer.confirm("Compact?", abort=True)
+        done = run(conn, policy, doc=doc)
+    console.print(f"[green]compacted {len(done.versions)} version(s), freed {_size(done.bytes_freed)}[/]")
 
 
 @app.command()

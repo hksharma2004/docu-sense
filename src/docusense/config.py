@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     add_roots: str = ""           # comma-separated folders add_document may read (default: home)
     http_token: str = ""          # bearer token for `serve-mcp --http`, if set
 
+    # retention: compact old versions after each add, e.g. "keep-last=5,older-than=180d" (see versions/compact.py)
+    retain: str = ""
+
     @property
     def home(self) -> Path:
         return docusense_home()
