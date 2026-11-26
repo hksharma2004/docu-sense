@@ -130,6 +130,20 @@ CREATE TABLE IF NOT EXISTS conflicts (
   details     JSONB
 );
 
+-- one row per version per compaction level. 'cold' = original source file and span embeddings
+-- removed; canonical text and span text kept, so every citation still verifies.
+-- spans_root is an RFC 6962 merkle root over the version's span sha256s (ordered by span id).
+CREATE TABLE IF NOT EXISTS compactions (
+  version_id   TEXT NOT NULL REFERENCES versions(id),
+  level        TEXT NOT NULL CHECK (level IN ('cold', 'pruned')),
+  compacted_at TIMESTAMPTZ NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f+00:00', 'now')),
+  span_count   INTEGER NOT NULL,
+  spans_root   TEXT NOT NULL,
+  bytes_freed  INTEGER NOT NULL,
+  policy       JSONB,
+  PRIMARY KEY (version_id, level)
+);
+
 -- append-only: evidence is never rewritten or removed.
 CREATE TRIGGER IF NOT EXISTS versions_append_only_u BEFORE UPDATE ON versions
 BEGIN SELECT RAISE(ABORT, 'append-only table versions: UPDATE not allowed'); END;
@@ -143,3 +157,7 @@ CREATE TRIGGER IF NOT EXISTS spans_append_only_u BEFORE UPDATE ON spans
 BEGIN SELECT RAISE(ABORT, 'append-only table spans: UPDATE not allowed'); END;
 CREATE TRIGGER IF NOT EXISTS spans_append_only_d BEFORE DELETE ON spans
 BEGIN SELECT RAISE(ABORT, 'append-only table spans: DELETE not allowed'); END;
+CREATE TRIGGER IF NOT EXISTS compactions_append_only_u BEFORE UPDATE ON compactions
+BEGIN SELECT RAISE(ABORT, 'append-only table compactions: UPDATE not allowed'); END;
+CREATE TRIGGER IF NOT EXISTS compactions_append_only_d BEFORE DELETE ON compactions
+BEGIN SELECT RAISE(ABORT, 'append-only table compactions: DELETE not allowed'); END;

@@ -136,6 +136,18 @@ CREATE INDEX IF NOT EXISTS claims_subject_idx ON claims(subject_key);
 CREATE INDEX IF NOT EXISTS claims_version_idx ON claims(version_id);
 CREATE INDEX IF NOT EXISTS claims_topic_idx ON claims USING gin(topic_terms);
 
+-- see schema_sqlite.sql for what a compaction is.
+CREATE TABLE IF NOT EXISTS compactions (
+  version_id   TEXT NOT NULL REFERENCES versions(id),
+  level        TEXT NOT NULL CHECK (level IN ('cold', 'pruned')),
+  compacted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  span_count   INTEGER NOT NULL,
+  spans_root   TEXT NOT NULL,
+  bytes_freed  BIGINT NOT NULL,
+  policy       JSONB,
+  PRIMARY KEY (version_id, level)
+);
+
 -- portable helper (sqlite registers the same function in python).
 CREATE OR REPLACE FUNCTION topic_overlap(a TEXT[], b TEXT[]) RETURNS INT LANGUAGE sql IMMUTABLE AS $$
   SELECT cardinality(ARRAY(SELECT unnest(a) INTERSECT SELECT unnest(b)))
@@ -150,7 +162,7 @@ END $$ LANGUAGE plpgsql;
 DO $$
 DECLARE t TEXT;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['versions', 'sections', 'spans'] LOOP
+  FOREACH t IN ARRAY ARRAY['versions', 'sections', 'spans', 'compactions'] LOOP
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = t || '_append_only') THEN
       EXECUTE format(
         'CREATE TRIGGER %I BEFORE UPDATE OR DELETE ON %I FOR EACH ROW EXECUTE FUNCTION forbid_mutation()',

@@ -79,7 +79,9 @@ def build(conn: Database, progress=None) -> int:
     rows = conn.execute(
         """SELECT p.id, p.text FROM spans p
            LEFT JOIN span_embeddings e ON e.span_id = p.id AND e.model = %s
-           WHERE p.kind = ANY(%s) AND e.span_id IS NULL ORDER BY p.id""",
+           WHERE p.kind = ANY(%s) AND e.span_id IS NULL
+             AND NOT EXISTS (SELECT 1 FROM compactions c WHERE c.version_id = p.version_id)
+           ORDER BY p.id""",
         (model, list(INDEX_KINDS)),
     ).fetchall()
     keys = [sha256_hex(_clean(r["text"]).encode()) for r in rows]

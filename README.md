@@ -90,6 +90,21 @@ If your documents are a few short files that already fit in context, you don't n
 
 Set `DOCUSENSE_TOOLS=core` for a smaller tool set if your agent's context is tight.
 
+## Disk use and old versions
+
+History is append-only: a changed file becomes a new version and old versions stay citable. To keep
+disk in check, compact old versions:
+
+```console
+$ docusense du                                  # what each version uses on disk
+$ docusense compact --keep-last 3 --older-than 90d
+```
+
+Compaction deletes an old version's original file and its search embeddings, which are most of its
+size. Its text stays, so every citation into it still verifies, and `diff`, `blame` and keyword search
+keep working. The latest version of a document is never compacted. Each compaction is recorded with a
+Merkle root of the version's passage hashes.
+
 ## Settings
 
 | Variable | Default | |
@@ -98,6 +113,7 @@ Set `DOCUSENSE_TOOLS=core` for a smaller tool set if your agent's context is tig
 | `DOCUSENSE_ADD_ROOTS` | your home folder | folders the agent may add files from |
 | `DOCUSENSE_TOOLS` | `all` | `core` for fewer tools |
 | `DOCUSENSE_SAVINGS_LOG` | `1` | `0` turns off the local savings log |
+| `DOCUSENSE_RETAIN` | off | compact old versions after each add, e.g. `keep-last=5,older-than=180d` |
 
 Share one library across several agents: `docusense serve-mcp --http` (set `DOCUSENSE_HTTP_TOKEN`
 when exposing it beyond localhost).
